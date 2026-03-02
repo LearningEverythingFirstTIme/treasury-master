@@ -12,6 +12,7 @@
     getCategoryBreakdown,
     addCategory,
     removeCategory,
+    updatePrudentReserve,
     type Treasury,
     type Transaction
   } from '$lib/treasury';
@@ -26,6 +27,7 @@
 
   let showAddTransaction = false;
   let showManageCategories = false;
+  let showEditReserve = false;
 
   let newAmount = '';
   let newType: 'income' | 'expense' = 'income';
@@ -35,6 +37,8 @@
 
   let newCategoryName = '';
   let categoryType: 'income' | 'expense' = 'income';
+  
+  let newReserveAmount = '';
 
   $: balance = calculateBalance(transactions);
   $: categoryBreakdown = getCategoryBreakdown(transactions);
@@ -108,6 +112,14 @@
     if (!treasury) return;
     await removeCategory(treasury.id, category);
     await loadData();
+  }
+
+  async function handleUpdateReserve() {
+    if (!treasury || !newReserveAmount) return;
+    await updatePrudentReserve(treasury.id, parseFloat(newReserveAmount));
+    await loadData();
+    newReserveAmount = '';
+    showEditReserve = false;
   }
 
   function formatCurrency(amount: number): string {
@@ -285,6 +297,10 @@
         <ReserveWidget 
           {treasury} 
           currentBalance={balance}
+          onEdit={() => {
+            newReserveAmount = treasury?.prudentReserve ? String(treasury.prudentReserve) : '';
+            showEditReserve = true;
+          }}
         />
       {/if}
 
@@ -605,6 +621,64 @@
             </div>
 
           </div>
+        </div>
+      </div>
+    {/if}
+
+    <!-- ── Edit Reserve Modal ─────────────────────────── -->
+    {#if showEditReserve}
+      <div style="position: fixed; inset: 0; background: rgba(10,10,10,0.7); display: flex;
+                  align-items: center; justify-content: center; padding: 20px; z-index: 50;"
+           on:click|self={() => showEditReserve = false}>
+        <div class="nb-card" style="width: 100%; max-width: 440px; padding: 32px;">
+
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+            <h2 style="font-size: 1.1rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em;">
+              Set Prudent Reserve
+            </h2>
+            <button
+              on:click={() => showEditReserve = false}
+              style="background: none; border: none; cursor: pointer; font-size: 1.5rem;
+                     font-weight: 900; line-height: 1; padding: 4px 8px; min-height: 44px;"
+            >
+              ×
+            </button>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div>
+              <label for="reserveAmount" class="nb-label">Target Amount ($)</label>
+              <input
+                id="reserveAmount"
+                type="number"
+                step="0.01"
+                min="0"
+                bind:value={newReserveAmount}
+                placeholder="0.00"
+                class="nb-input"
+                style="font-size: 1.5rem; font-weight: 900;"
+              />
+            </div>
+
+            <p style="font-size: 0.8rem; font-weight: 600; color: #444; line-height: 1.5;">
+              The prudent reserve is a savings target for this treasury. 
+              AA suggests 2-3 months of operating expenses.
+            </p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px;">
+              <button on:click={() => showEditReserve = false} class="nb-btn nb-btn-white">
+                Cancel
+              </button>
+              <button
+                on:click={handleUpdateReserve}
+                disabled={!newReserveAmount}
+                class="nb-btn nb-btn-yellow"
+              >
+                Save →
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
     {/if}

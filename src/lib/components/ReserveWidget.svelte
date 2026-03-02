@@ -3,6 +3,7 @@
 
   export let treasury: Treasury;
   export let currentBalance: number = 0;
+  export let onEdit: () => void;
 
   $: reserveStatus = calculateReserveStatus(currentBalance, treasury.prudentReserve);
 
@@ -52,12 +53,12 @@
   <div style="padding: 20px;">    {#if reserveStatus.status === 'unset'}      <!-- Not set state -->
       <div style="text-align: center; padding: 20px;">        <p style="font-size: 0.9rem; font-weight: 700; color: #444; margin-bottom: 16px;">          Set a prudent reserve target for this treasury
         </p>
-        <a 
-          href="/treasury/{treasury.id}?editReserve=true" 
+        <button
+          on:click={onEdit}
           class="nb-btn nb-btn-yellow"
           style="width: auto; display: inline-flex; padding: 12px 24px;"
         >          Set Target Amount →
-        </a>
+        </button>
       </div>    {:else}      <!-- Progress Bar -->
       <div style="margin-bottom: 20px;">        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">          <span>Reserve Coverage</span>
           <span>{Math.round(reserveStatus.percentCovered)}%</span>
@@ -96,11 +97,11 @@
       </div>
 
       <!-- Edit link -->
-      <div style="margin-top: 16px; text-align: right;">        <a 
-          href="/treasury/{treasury.id}?editReserve=true" 
-          style="font-size: 0.75rem; font-weight: 700; color: #0052FF; text-decoration: underline;"
+      <div style="margin-top: 16px; text-align: right;">        <button
+          on:click={onEdit}
+          style="font-size: 0.75rem; font-weight: 700; color: #0052FF; text-decoration: underline; background: none; border: none; cursor: pointer;"
         >          Edit Target →
-        </a>
+        </button>
       </div>
     {/if}
   </div>

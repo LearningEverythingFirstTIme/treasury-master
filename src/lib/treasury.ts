@@ -72,9 +72,10 @@ export async function deleteTransaction(transactionId: string): Promise<void> {
   await deleteDoc(doc(db, 'transactions', transactionId));
 }
 
-export async function getTreasuryTransactions(treasuryId: string): Promise<Transaction[]> {
+export async function getTreasuryTransactions(userId: string, treasuryId: string): Promise<Transaction[]> {
   const q = query(
     transactionsCollection,
+    where('userId', '==', userId),
     where('treasuryId', '==', treasuryId),
     orderBy('date', 'desc')
   );
@@ -91,12 +92,14 @@ export async function getTreasuryTransactions(treasuryId: string): Promise<Trans
 }
 
 export function subscribeTreasuryTransactions(
+  userId: string,
   treasuryId: string,
   callback: (transactions: Transaction[]) => void,
   onError?: (error: Error) => void
 ): Unsubscribe {
   const q = query(
     transactionsCollection,
+    where('userId', '==', userId),
     where('treasuryId', '==', treasuryId),
     orderBy('date', 'desc')
   );

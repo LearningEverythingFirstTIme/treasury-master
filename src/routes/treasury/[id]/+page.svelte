@@ -74,6 +74,7 @@
         // Cancel any previous listener before starting a new one
         if (unsubscribeTransactions) unsubscribeTransactions();
         unsubscribeTransactions = subscribeTreasuryTransactions(
+          $user.uid,
           treasuryId,
           (txns) => {
             transactions = txns;

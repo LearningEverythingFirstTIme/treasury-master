@@ -13,6 +13,7 @@ export async function createTreasury(userId: string, name: string, description: 
     name,
     description,
     categories: [],
+    prudentReserve: 0, // Default: no target set
     createdAt: serverTimestamp()
   });
   return docRef.id;
@@ -21,11 +22,15 @@ export async function createTreasury(userId: string, name: string, description: 
 export async function getUserTreasuries(userId: string): Promise<Treasury[]> {
   const q = query(treasuriesCollection, where('userId', '==', userId), orderBy('createdAt', 'asc'));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    createdAt: doc.data().createdAt?.toDate() || new Date()
-  })) as Treasury[];
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      prudentReserve: data.prudentReserve ?? 0,
+      createdAt: data.createdAt?.toDate() || new Date()
+    } as Treasury;
+  });
 }
 
 export async function addCategory(treasuryId: string, category: string): Promise<void> {
@@ -39,6 +44,13 @@ export async function removeCategory(treasuryId: string, category: string): Prom
   const ref = doc(db, 'treasuries', treasuryId);
   await updateDoc(ref, {
     categories: arrayRemove(category)
+  });
+}
+
+export async function updatePrudentReserve(treasuryId: string, amount: number): Promise<void> {
+  const ref = doc(db, 'treasuries', treasuryId);
+  await updateDoc(ref, {
+    prudentReserve: Math.max(0, amount)
   });
 }
 

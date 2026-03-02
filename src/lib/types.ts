@@ -16,6 +16,7 @@ export interface Treasury {
   name: string;
   description: string;
   categories: string[];
+  prudentReserve: number; // Dollar amount target
   createdAt: Date;
 }
 
@@ -24,8 +25,9 @@ export const DEFAULT_CATEGORIES = {
   expense: ['Rent', 'Literature', 'Coffee/Refreshments', 'Supplies', 'Group Activities', 'Other Expense']
 };
 
+// UserSettings kept for potential future use, but prudent reserve is now per-treasury
 export interface UserSettings {
   userId: string;
-  reserveMonths: number;  // Default: 3 (AA suggests 2-3 months)
+  reserveMonths: number;
   updatedAt: Date;
 }

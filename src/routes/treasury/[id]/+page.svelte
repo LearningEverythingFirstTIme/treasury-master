@@ -17,14 +17,12 @@
   } from '$lib/treasury';
   import { DEFAULT_CATEGORIES } from '$lib/types';
   import ReserveWidget from '$lib/components/ReserveWidget.svelte';
-  import { getUserSettings, type UserSettings } from '$lib/settings';
   
   $: treasuryId = $page.params.id as string;
   
   let treasury: Treasury | null = null;
   let transactions: Transaction[] = [];
   let loadingData = true;
-  let settings: UserSettings | null = null;
 
   let showAddTransaction = false;
   let showManageCategories = false;
@@ -64,11 +62,7 @@
     if (!$user) return;
     loadingData = true;
     try {
-      const [treasuries, userSettings] = await Promise.all([
-        getUserTreasuries($user.uid),
-        getUserSettings($user.uid)
-      ]);
-      settings = userSettings;
+      const treasuries = await getUserTreasuries($user.uid);
       treasury = treasuries.find((t: Treasury) => t.id === treasuryId) || null;
       if (treasury) {
         transactions = await getTreasuryTransactions(treasuryId);
@@ -287,11 +281,10 @@
       </div>
 
       <!-- ── Reserve Widget ─────────────────────────── -->
-      {#if settings}
+      {#if treasury}
         <ReserveWidget 
-          {transactions} 
-          currentBalance={balance} 
-          {settings} 
+          {treasury} 
+          currentBalance={balance}
         />
       {/if}
 

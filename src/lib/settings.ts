@@ -54,7 +54,6 @@ export async function updateReserveMonths(userId: string, months: number): Promi
   
   try {
     await setDoc(ref, settings, { merge: true });
-    // Update cache
     settingsCache.set(userId, {
       userId,
       reserveMonths: settings.reserveMonths,
@@ -66,39 +65,35 @@ export async function updateReserveMonths(userId: string, months: number): Promi
   }
 }
 
-export function calculateMonthlyBurnRate(transactions: { amount: number; type: 'income' | 'expense'; date: Date }[]): number {
-  const now = new Date();
-  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-  
-  const recentExpenses = transactions.filter(
-    t => t.type === 'expense' && t.date >= threeMonthsAgo
-  );
-  
-  if (recentExpenses.length === 0) return 0;
-  
-  const totalExpenses = recentExpenses.reduce((sum, t) => sum + t.amount, 0);
-  return totalExpenses / 3;
-}
-
+// Simple reserve status calculation based on dollar amounts
 export function calculateReserveStatus(
   currentBalance: number,
-  monthlyBurnRate: number,
-  reserveMonths: number
+  targetReserve: number
 ): {
   targetReserve: number;
   currentReserve: number;
-  monthsCovered: number;
   percentCovered: number;
-  status: 'healthy' | 'caution' | 'low';
+  status: 'healthy' | 'caution' | 'low' | 'unset';
+  surplus: number;
 } {
-  const targetReserve = monthlyBurnRate * reserveMonths;
-  const monthsCovered = monthlyBurnRate > 0 ? currentBalance / monthlyBurnRate : 0;
-  const percentCovered = targetReserve > 0 ? Math.min(100, (currentBalance / targetReserve) * 100) : 100;
+  // If no target set (0), show unset status
+  if (targetReserve <= 0) {
+    return {
+      targetReserve: 0,
+      currentReserve: currentBalance,
+      percentCovered: 0,
+      status: 'unset',
+      surplus: currentBalance
+    };
+  }
   
-  let status: 'healthy' | 'caution' | 'low';
-  if (monthsCovered >= reserveMonths) {
+  const percentCovered = Math.min(100, (currentBalance / targetReserve) * 100);
+  const surplus = currentBalance - targetReserve;
+  
+  let status: 'healthy' | 'caution' | 'low' | 'unset';
+  if (currentBalance >= targetReserve) {
     status = 'healthy';
-  } else if (monthsCovered >= reserveMonths * 0.5) {
+  } else if (currentBalance >= targetReserve * 0.5) {
     status = 'caution';
   } else {
     status = 'low';
@@ -107,8 +102,8 @@ export function calculateReserveStatus(
   return {
     targetReserve,
     currentReserve: currentBalance,
-    monthsCovered,
     percentCovered,
-    status
+    status,
+    surplus
   };
 }

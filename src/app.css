@@ -1,7 +1,32 @@
 @import 'tailwindcss';
 
-/* Custom warm, encouraging color palette */
-:root {
+/* Tailwind v4 theme configuration - defines custom color utilities */
+@theme {
+  /* Sage color scale */
+  --color-sage-50: #f0fdf4;
+  --color-sage-100: #dcfce7;
+  --color-sage-200: #bbf7d0;
+  --color-sage-300: #86efac;
+  --color-sage-400: #4ade80;
+  --color-sage-500: #22c55e;
+  --color-sage-600: #059669;
+  --color-sage-700: #047857;
+  --color-sage-800: #065f46;
+  --color-sage-900: #064e3b;
+
+  /* Warm color scale */
+  --color-warm-50: #fffbeb;
+  --color-warm-100: #fef3c7;
+  --color-warm-200: #fde68a;
+  --color-warm-300: #fcd34d;
+  --color-warm-400: #fbbf24;
+  --color-warm-500: #f59e0b;
+  --color-warm-600: #d97706;
+  --color-warm-700: #b45309;
+  --color-warm-800: #92400e;
+  --color-warm-900: #78350f;
+
+  /* Semantic colors */
   --color-primary: #059669;
   --color-primary-dark: #047857;
   --color-secondary: #d97706;

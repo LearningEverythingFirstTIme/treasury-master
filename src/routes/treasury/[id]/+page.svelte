@@ -111,6 +111,61 @@
   function formatDate(date: Date): string {
     return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
   }
+
+  function exportCSV() {
+    if (!treasury) return;
+
+    // Escape a value for safe CSV embedding
+    const esc = (val: string | number) => `"${String(val).replace(/"/g, '""')}"`;
+
+    const exportDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    // Metadata header block
+    const meta = [
+      ['Treasury', treasury.name],
+      ['Description', treasury.description || ''],
+      ['Exported', exportDate],
+      ['Total Transactions', String(transactions.length)],
+      [], // blank separator row
+    ];
+
+    // Column headers
+    const columns = ['Date', 'Type', 'Category', 'Amount (USD)', 'Note'];
+
+    // One row per transaction, already sorted date-desc from Firestore
+    const rows = transactions.map(t => [
+      formatDate(t.date),
+      t.type === 'income' ? 'Income' : 'Expense',
+      t.category,
+      t.amount.toFixed(2),
+      t.note || '',
+    ]);
+
+    // Summary block
+    const summary = [
+      [], // blank separator row
+      ['SUMMARY'],
+      ['Total Balance',  '', '', balance.toFixed(2),      ''],
+      ['Total Income',   '', '', totalIncome.toFixed(2),  ''],
+      ['Total Expense',  '', '', totalExpense.toFixed(2), ''],
+    ];
+
+    const csv = [...meta, columns, ...rows, ...summary]
+      .map(row => row.map(cell => esc(cell)).join(','))
+      .join('\r\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `${treasury.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 </script>
 
 <!-- ══════════════════════════════════════════════════════ -->
@@ -199,14 +254,25 @@
         </div>
       </div>
 
-      <!-- ── Add Transaction button ──────────────────── -->
-      <button
-        on:click={() => showAddTransaction = true}
-        class="nb-btn nb-btn-black"
-        style="margin-bottom: 24px; font-size: 1rem; padding: 18px 24px;"
-      >
-        + Add Transaction
-      </button>
+      <!-- ── Action buttons ─────────────────────────── -->
+      <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-bottom: 24px;">
+        <button
+          on:click={() => showAddTransaction = true}
+          class="nb-btn nb-btn-black"
+          style="font-size: 1rem; padding: 18px 24px;"
+        >
+          + Add Transaction
+        </button>
+        <button
+          on:click={exportCSV}
+          disabled={transactions.length === 0}
+          class="nb-btn nb-btn-white"
+          style="font-size: 0.8rem; padding: 18px 18px; white-space: nowrap;"
+          title={transactions.length === 0 ? 'No transactions to export' : 'Download all transactions as CSV'}
+        >
+          Export CSV ↓
+        </button>
+      </div>
 
       <!-- ── Category Breakdown ──────────────────────── -->
       {#if Object.keys(categoryBreakdown).length > 0}

@@ -21,79 +21,98 @@
       const days = Math.round(months * 30);
       return `${days} day${days !== 1 ? 's' : ''}`;
     }
-    return `${months.toFixed(1)} month${months !== 1 ? 's' : ''}`;
+    return `${months.toFixed(1)} mo`;
   }
 
   const statusConfig = {
-    healthy: { color: 'bg-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-800', label: 'Healthy', icon: '✓' },
-    caution: { color: 'bg-amber-500', bg: 'bg-amber-50', text: 'text-amber-800', label: 'Caution', icon: '!' },
-    low: { color: 'bg-rose-500', bg: 'bg-rose-50', text: 'text-rose-800', label: 'Low', icon: '⚠' }
+    healthy: { 
+      cardClass: 'nb-card-green', 
+      badgeClass: 'nb-badge-green',
+      barColor: '#00C853',
+      label: 'HEALTHY',
+      textColor: '#0A0A0A'
+    },
+    caution: { 
+      cardClass: 'nb-card-yellow', 
+      badgeClass: 'nb-badge-yellow',
+      barColor: '#FFE500',
+      label: 'CAUTION',
+      textColor: '#0A0A0A'
+    },
+    low: { 
+      cardClass: 'nb-card-red', 
+      badgeClass: 'nb-badge-red',
+      barColor: '#FF1744',
+      label: 'LOW',
+      textColor: '#FFFFFF'
+    }
   };
 
   $: config = statusConfig[reserveStatus.status];
 </script>
 
-<div class="rounded-xl border border-slate-200 overflow-hidden">
-  <div class="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-    <h3 class="font-semibold text-slate-800">Prudent Reserve</h3>
-    <span class="text-xs text-slate-500">Target: {settings.reserveMonths} months</span>
+<div class="nb-card" style="margin-bottom: 20px;">
+  <!-- Header -->
+  <div style="background: #0A0A0A; color: #FFE500; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;">
+    <span style="font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.75rem;">
+      Prudent Reserve
+    </span>
+    <span class="nb-badge {config.badgeClass}">{config.label}</span>
   </div>
   
-  <div class="p-5">
-    <!-- Status Bar -->
-    <div class="mb-4">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-sm text-slate-600">Reserve Coverage</span>
-        <span class="text-sm font-medium {config.text}">{config.label}</span>
+  <div style="padding: 20px;">
+    <!-- Progress Bar -->
+    <div style="margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">
+        <span>Reserve Coverage</span>
+        <span>{Math.round(reserveStatus.percentCovered)}%</span>
       </div>
-      <div class="h-3 bg-slate-100 rounded-full overflow-hidden">
+      <div style="height: 24px; background: #E5E5E5; border: 3px solid #0A0A0A;">
         <div 
-          class="h-full {config.color} transition-all duration-500"
-          style="width: {reserveStatus.percentCovered}%"
+          style="height: 100%; background: {config.barColor}; transition: width 0.5s ease; width: {Math.min(100, reserveStatus.percentCovered)}%;"
         ></div>
       </div>
-      <div class="flex justify-between mt-1 text-xs text-slate-500">
+      <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 0.65rem; font-weight: 600; color: #666; text-transform: uppercase;">
         <span>0%</span>
-        <span>{Math.round(reserveStatus.percentCovered)}%</span>
+        <span>Target: {settings.reserveMonths} mo</span>
         <span>100%+</span>
       </div>
     </div>
 
     <!-- Stats Grid -->
-    <div class="grid grid-cols-2 gap-4">
-      <div class="{config.bg} rounded-lg p-3">
-        <div class="text-xs text-slate-500 mb-1">Months Covered</div>
-        <div class="text-xl font-bold {config.text}">{formatMonths(reserveStatus.monthsCovered)}</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+      <div style="background: #FFE500; border: 3px solid #0A0A0A; padding: 16px;">
+        <div style="font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Months Covered</div>
+        <div style="font-size: 1.6rem; font-weight: 900;">{formatMonths(reserveStatus.monthsCovered)}</div>
       </div>
       
-      <div class="bg-slate-50 rounded-lg p-3">
-        <div class="text-xs text-slate-500 mb-1">Target Reserve</div>
-        <div class="text-xl font-bold text-slate-800">{formatCurrency(reserveStatus.targetReserve)}</div>
+      <div style="background: #FFFFFF; border: 3px solid #0A0A0A; padding: 16px;">
+        <div style="font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Target Reserve</div>
+        <div style="font-size: 1.3rem; font-weight: 900;">{formatCurrency(reserveStatus.targetReserve)}</div>
       </div>
       
-      <div class="bg-slate-50 rounded-lg p-3">
-        <div class="text-xs text-slate-500 mb-1">Current Balance</div>
-        <div class="text-xl font-bold text-slate-800">{formatCurrency(reserveStatus.currentReserve)}</div>
+      <div style="background: #FFFFFF; border: 3px solid #0A0A0A; padding: 16px;">
+        <div style="font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Current Balance</div>
+        <div style="font-size: 1.3rem; font-weight: 900;">{formatCurrency(reserveStatus.currentReserve)}</div>
       </div>
       
-      <div class="bg-slate-50 rounded-lg p-3">
-        <div class="text-xs text-slate-500 mb-1">Monthly Burn Rate</div>
-        <div class="text-xl font-bold text-slate-800">{formatCurrency(monthlyBurn)}</div>
+      <div style="background: #FFFFFF; border: 3px solid #0A0A0A; padding: 16px;">
+        <div style="font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Monthly Burn</div>
+        <div style="font-size: 1.3rem; font-weight: 900;">{formatCurrency(monthlyBurn)}</div>
         {#if monthlyBurn === 0}
-          <div class="text-xs text-slate-400 mt-1">No recent expenses</div>
+          <div style="font-size: 0.6rem; color: #666; margin-top: 4px;">No recent expenses</div>
         {/if}
       </div>
     </div>
 
     <!-- Explanation -->
-    <div class="mt-4 text-xs text-slate-500 leading-relaxed">
+    <div style="margin-top: 16px; padding: 12px; background: #F5F5F0; border: 2px solid #0A0A0A; font-size: 0.75rem; font-weight: 600; line-height: 1.5;">
       {#if reserveStatus.status === 'healthy'}
-        Your group has a healthy reserve covering {formatMonths(reserveStatus.monthsCovered)} of expenses. 
-        AA suggests maintaining 2-3 months of operating expenses.
+        ✓ Your reserve covers {formatMonths(reserveStatus.monthsCovered)} of expenses. AA suggests 2-3 months.
       {:else if reserveStatus.status === 'caution'}
-        Your reserve is below target. Consider building up savings to reach {settings.reserveMonths} months of coverage.
+        ! Reserve below target. Consider building savings to reach {settings.reserveMonths} months.
       {:else}
-        Your reserve is critically low. Discuss with your business meeting about building a prudent reserve.
+        ⚠ Reserve critically low. Discuss with your business meeting about building a prudent reserve.
       {/if}
     </div>
   </div>

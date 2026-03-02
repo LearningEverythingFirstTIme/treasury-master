@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { user, loading } from '$lib/auth';
+  import { user, loading, logout } from '$lib/auth';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { getUserSettings, updateReserveMonths, type UserSettings } from '$lib/settings';
@@ -32,10 +32,10 @@
     
     try {
       await updateReserveMonths($user.uid, settings.reserveMonths);
-      message = 'Settings saved!';
+      message = 'Saved!';
       setTimeout(() => message = '', 3000);
     } catch (err) {
-      message = 'Error saving settings';
+      message = 'Error saving';
     } finally {
       saving = false;
     }
@@ -43,24 +43,56 @@
 </script>
 
 {#if $loading}
-  <div class="min-h-screen flex items-center justify-center">
-    <div class="w-8 h-8 border-4 border-warm-300 border-t-warm-600 rounded-full animate-spin"></div>
+  <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #FAFAF0;">
+    <div class="nb-spinner"></div>
   </div>
 {:else if $user}
-  <div class="min-h-screen p-4 pb-24">
+  <div style="min-height: 100vh; background: #FAFAF0; padding-bottom: 80px;">
     <!-- Header -->
-    <header class="mb-6">
-      <a href="/" class="text-warm-600 hover:text-warm-800 text-2xl">←</a>
-      <h1 class="text-2xl font-bold text-warm-800 mt-2">Settings</h1>
-    </header>
-    
-    {#if settings}
-      <div class="bg-white rounded-2xl shadow-md p-6">
-        <h2 class="text-lg font-semibold text-warm-800 mb-4">Prudent Reserve</h2>
+    <header style="background: #0A0A0A; border-bottom: 3px solid #0A0A0A; padding: 20px 20px 18px;">
+      <div style="max-width: 600px; margin: 0 auto; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+        <div>
+          <p style="color: #FFE500; font-size: 0.6rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 3px;">
+            Treasury Management
+          </p>
+          <h1 style="color: #FAFAF0; font-size: 1.8rem; font-weight: 900; text-transform: uppercase; line-height: 1; letter-spacing: -0.01em;">
+            Settings
+          </h1>
+        </div>
         
-        <div class="space-y-4">
-          <div>
-            <label for="reserveMonths" class="block text-sm font-medium text-warm-700 mb-2">
+        <div style="display: flex; gap: 8px;">
+          <a 
+            href="/" 
+            style="background: #FAFAF0; border: 3px solid #FAFAF0; color: #0A0A0A; font-weight: 900;
+                   font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer;
+                   padding: 8px 14px; flex-shrink: 0; min-height: 44px; margin-top: 2px;
+                   text-decoration: none; display: inline-flex; align-items: center;"
+          >
+            ← Back
+          </a>
+          <button
+            on:click={logout}
+            style="background: #FF1744; border: 3px solid #FF1744; color: #FFFFFF; font-weight: 900;
+                   font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer;
+                   padding: 8px 14px; flex-shrink: 0; min-height: 44px; margin-top: 2px;"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div style="max-width: 600px; margin: 0 auto; padding: 24px 20px;">
+      
+      {#if settings}
+        <!-- Prudent Reserve Card -->
+        <div class="nb-card-yellow" style="padding: 28px; margin-bottom: 20px;">
+          <h2 style="font-size: 1.1rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 20px;">
+            Prudent Reserve Target
+          </h2>
+          
+          <div style="margin-bottom: 20px;">
+            <label for="reserveMonths" class="nb-label" style="margin-bottom: 10px; display: block;">
               Target Reserve (months of expenses)
             </label>
             <input
@@ -69,40 +101,60 @@
               min="1"
               max="12"
               bind:value={settings.reserveMonths}
-              class="w-full px-4 py-4 rounded-xl border border-warm-300 focus:border-sage-500 focus:ring-2 focus:ring-sage-200 outline-none text-lg"
+              class="nb-input"
+              style="font-size: 1.5rem; font-weight: 900; text-align: center; max-width: 120px;"
             />
-            <p class="text-sm text-warm-500 mt-2">
+            <p style="font-size: 0.8rem; font-weight: 600; color: #444; margin-top: 12px; line-height: 1.5;">
               AA suggests maintaining 2-3 months of operating expenses as a prudent reserve.
             </p>
           </div>
           
           {#if message}
-            <div class="text-sm text-sage-600 font-medium">{message}</div>
+            <div style="background: #0A0A0A; color: #00C853; padding: 12px 16px; margin-bottom: 16px; font-weight: 900; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.08em;">
+              {message}
+            </div>
           {/if}
           
           <button
             on:click={handleSave}
             disabled={saving}
-            class="w-full bg-sage-600 text-white font-semibold py-4 rounded-xl hover:bg-sage-700 disabled:opacity-50 shadow-md"
+            class="nb-btn nb-btn-black"
+            style={saving ? 'opacity: 0.5;' : ''}
           >
-            {saving ? 'Saving...' : 'Save Settings'}
+            {saving ? 'Saving...' : 'Save Settings →'}
           </button>
         </div>
-      </div>
+        
+        <!-- Info Card -->
+        <div class="nb-card" style="padding: 24px;">
+          <h3 style="font-size: 0.9rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;">
+            About Prudent Reserve
+          </h3>
+          
+          <p style="font-size: 0.85rem; font-weight: 600; line-height: 1.6; color: #444;">
+            The prudent reserve is a savings buffer recommended by AA to ensure group continuity 
+            during lean periods. Your monthly burn rate is calculated from the average of your 
+            last 3 months of expenses.
+          </p>
+          
+          <div style="margin-top: 16px; padding: 16px; background: #F5F5F0; border: 2px solid #0A0A0A;">
+            <div style="font-size: 0.7rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; color: #666;">
+              How It Works
+            </div>
+            <ul style="font-size: 0.8rem; font-weight: 600; line-height: 1.8; color: #333; margin: 0; padding-left: 20px;">
+              <li>Monthly burn = Average of last 3 months expenses</li>
+              <li>Target reserve = Burn rate × Target months</li>
+              <li>Coverage = Current balance ÷ Monthly burn</li>
+            </ul>
+          </div>
+        </div>
+        
+      {:else}
+        <div style="display: flex; justify-content: center; padding: 60px 20px;">
+          <div class="nb-spinner"></div>
+        </div>
+      {/if}
       
-      <!-- Info Card -->
-      <div class="mt-6 bg-sage-50 rounded-2xl p-6">
-        <h3 class="font-semibold text-sage-800 mb-2">About Prudent Reserve</h3>
-        <p class="text-sm text-sage-700 leading-relaxed">
-          The prudent reserve is a savings buffer recommended by AA to ensure group continuity 
-          during lean periods. Your monthly burn rate is calculated from the average of your 
-          last 3 months of expenses.
-        </p>
-      </div>
-    {:else}
-      <div class="flex justify-center py-12">
-        <div class="w-8 h-8 border-4 border-warm-300 border-t-warm-600 rounded-full animate-spin"></div>
-      </div>
-    {/if}
+    </div>
   </div>
 {/if}

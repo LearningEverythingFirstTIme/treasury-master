@@ -16,12 +16,15 @@
     type Transaction
   } from '$lib/treasury';
   import { DEFAULT_CATEGORIES } from '$lib/types';
+  import ReserveWidget from '$lib/components/ReserveWidget.svelte';
+  import { getUserSettings, type UserSettings } from '$lib/settings';
   
   $: treasuryId = $page.params.id as string;
   
   let treasury: Treasury | null = null;
   let transactions: Transaction[] = [];
   let loadingData = true;
+  let settings: UserSettings | null = null;
   
   let showAddTransaction = false;
   let showManageCategories = false;
@@ -58,7 +61,12 @@
     if (!$user) return;
     loadingData = true;
     
-    const treasuries = await getUserTreasuries($user.uid);
+    const [treasuries, userSettings] = await Promise.all([
+      getUserTreasuries($user.uid),
+      getUserSettings($user.uid)
+    ]);
+    
+    settings = userSettings;
     treasury = treasuries.find((t: Treasury) => t.id === treasuryId) || null;
     
     if (treasury) {
@@ -134,6 +142,10 @@
       <a href="/" class="text-sage-600 hover:text-sage-700 font-medium">← Back to treasuries</a>
     </div>
   </div>
+{:else if !settings}
+  <div class="min-h-screen flex items-center justify-center">
+    <div class="w-8 h-8 border-4 border-warm-300 border-t-warm-600 rounded-full animate-spin"></div>
+  </div>
 {:else}
   <div class="min-h-screen pb-24">
     <!-- Header -->
@@ -174,6 +186,13 @@
       >
         + Add Transaction
       </button>
+      
+      <!-- Reserve Widget -->
+      <ReserveWidget 
+        {transactions} 
+        currentBalance={balance} 
+        {settings} 
+      />
       
       <!-- Category Breakdown -->
       {#if Object.keys(categoryBreakdown).length > 0}

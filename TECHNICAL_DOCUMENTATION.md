@@ -44,6 +44,13 @@ Jim's Treasury Tracker is a web application designed for Alcoholics Anonymous gr
 | date | timestamp | Transaction date |
 | createdAt | timestamp | Creation timestamp |
 
+### settings collection
+| Field | Type | Description |
+|-------|------|-------------|
+| userId | string | Firebase Auth UID (document ID) |
+| reserveMonths | number | Target prudent reserve in months (default: 3) |
+| updatedAt | timestamp | Last update timestamp |
+
 ## TypeScript Types
 
 ```typescript

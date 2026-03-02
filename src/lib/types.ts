@@ -23,3 +23,9 @@ export const DEFAULT_CATEGORIES = {
   income: ['Donation', 'Meeting Contributions', 'Fundraiser', 'Other Income'],
   expense: ['Rent', 'Literature', 'Coffee/Refreshments', 'Supplies', 'Group Activities', 'Other Expense']
 };
+
+export interface UserSettings {
+  userId: string;
+  reserveMonths: number;  // Default: 3 (AA suggests 2-3 months)
+  updatedAt: Date;
+}

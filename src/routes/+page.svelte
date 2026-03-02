@@ -67,9 +67,18 @@
   </div>
 {:else if $user}
   <div class="min-h-screen p-4 pb-24">
-    <header class="mb-6">
-      <h1 class="text-2xl font-bold text-warm-800">My Treasuries</h1>
-      <p class="text-warm-600">Select a treasury to manage</p>
+    <header class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-warm-800">My Treasuries</h1>
+        <p class="text-warm-600">Select a treasury to manage</p>
+      </div>
+      <a 
+        href="/settings" 
+        class="text-warm-600 hover:text-warm-800 p-2"
+        title="Settings"
+      >
+        ⚙️
+      </a>
     </header>
     
     {#if loadError}

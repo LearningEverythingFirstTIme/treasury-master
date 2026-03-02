@@ -9,26 +9,41 @@
   let newName = '';
   let newDescription = '';
   let creating = false;
+  let loadError = '';
+  let isLoading = true;
   
   onMount(() => {
-    if (!$loading && !$user) {
-      goto('/login');
-    } else if ($user) {
-      loadTreasuries();
-    }
+    // Wait for auth to be ready, then load
+    const unsubscribe = loading.subscribe((isAuthLoading) => {
+      if (!isAuthLoading) {
+        if (!$user) {
+          goto('/login');
+        } else {
+          loadTreasuries();
+        }
+        unsubscribe();
+      }
+    });
   });
   
   $: if (!$loading && !$user) {
     goto('/login');
   }
   
-  $: if ($user && !treasuries.length && !showCreate) {
-    loadTreasuries();
-  }
-  
   async function loadTreasuries() {
     if (!$user) return;
-    treasuries = await getUserTreasuries($user.uid);
+    isLoading = true;
+    loadError = '';
+    try {
+      console.log('Loading treasuries for user:', $user.uid);
+      treasuries = await getUserTreasuries($user.uid);
+      console.log('Loaded treasuries:', treasuries);
+    } catch (err: any) {
+      console.error('Error loading treasuries:', err);
+      loadError = err.message || 'Failed to load treasuries';
+    } finally {
+      isLoading = false;
+    }
   }
   
   async function handleCreate() {
@@ -46,7 +61,7 @@
   }
 </script>
 
-{#if $loading}
+{#if $loading || isLoading}
   <div class="min-h-screen flex items-center justify-center">
     <div class="w-8 h-8 border-4 border-warm-300 border-t-warm-600 rounded-full animate-spin"></div>
   </div>
@@ -56,6 +71,18 @@
       <h1 class="text-2xl font-bold text-warm-800">My Treasuries</h1>
       <p class="text-warm-600">Select a treasury to manage</p>
     </header>
+    
+    {#if loadError}
+      <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+        <p class="text-red-700">Error: {loadError}</p>
+        <button 
+          on:click={loadTreasuries}
+          class="mt-2 text-red-600 underline"
+        >
+          Retry
+        </button>
+      </div>
+    {/if}
     
     {#if treasuries.length === 0 && !showCreate}
       <div class="bg-white rounded-2xl shadow-md p-8 text-center">

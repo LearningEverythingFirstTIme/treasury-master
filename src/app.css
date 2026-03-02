@@ -1,0 +1,53 @@
+@import 'tailwindcss';
+
+/* Custom warm, encouraging color palette */
+:root {
+  --color-primary: #059669;
+  --color-primary-dark: #047857;
+  --color-secondary: #d97706;
+  --color-secondary-dark: #b45309;
+  --color-background: #fffbeb;
+  --color-surface: #ffffff;
+  --color-text: #1f2937;
+  --color-text-muted: #6b7280;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --color-income: #10b981;
+  --color-expense: #ef4444;
+}
+
+/* High contrast focus states for accessibility */
+*:focus-visible {
+  outline: 3px solid var(--color-secondary);
+  outline-offset: 2px;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Large touch targets */
+button, a, input, select {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Custom scrollbar for transaction lists */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}

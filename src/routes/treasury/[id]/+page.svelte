@@ -63,16 +63,21 @@
   async function loadData() {
     if (!$user) return;
     loadingData = true;
-    const [treasuries, userSettings] = await Promise.all([
-      getUserTreasuries($user.uid),
-      getUserSettings($user.uid)
-    ]);
-    settings = userSettings;
-    treasury = treasuries.find((t: Treasury) => t.id === treasuryId) || null;
-    if (treasury) {
-      transactions = await getTreasuryTransactions(treasuryId);
+    try {
+      const [treasuries, userSettings] = await Promise.all([
+        getUserTreasuries($user.uid),
+        getUserSettings($user.uid)
+      ]);
+      settings = userSettings;
+      treasury = treasuries.find((t: Treasury) => t.id === treasuryId) || null;
+      if (treasury) {
+        transactions = await getTreasuryTransactions(treasuryId);
+      }
+    } catch (err) {
+      console.error('Error loading data:', err);
+    } finally {
+      loadingData = false;
     }
-    loadingData = false;
   }
 
   async function handleAddTransaction() {

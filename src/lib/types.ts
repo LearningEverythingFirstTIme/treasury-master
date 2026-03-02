@@ -16,7 +16,9 @@ export interface Treasury {
   name: string;
   description: string;
   categories: string[];
-  prudentReserve: number; // Dollar amount target
+  prudentReserve: number;                   // Stored target dollar amount
+  prudentReserveMode: 'auto' | 'manual';    // How the target was set
+  prudentReserveMonths: number;             // Months multiplier used in auto mode
   createdAt: Date;
 }
 

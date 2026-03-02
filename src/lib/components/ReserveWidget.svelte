@@ -97,11 +97,16 @@
       </div>
 
       <!-- Edit link -->
-      <div style="margin-top: 16px; text-align: right;">        <button
+      <div style="margin-top: 16px; display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
+        <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #888;">
+          {treasury.prudentReserveMode === 'auto'
+            ? `Auto · ${treasury.prudentReserveMonths ?? 3} months`
+            : 'Fixed amount'}
+        </span>
+        <button
           on:click={onEdit}
           style="font-size: 0.75rem; font-weight: 700; color: #0052FF; text-decoration: underline; background: none; border: none; cursor: pointer;"
-        >          Edit Target →
-        </button>
+        >Edit Target →</button>
       </div>
     {/if}
   </div>

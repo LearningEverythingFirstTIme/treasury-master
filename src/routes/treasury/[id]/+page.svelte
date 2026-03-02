@@ -18,6 +18,7 @@
   } from '$lib/treasury';
   import { DEFAULT_CATEGORIES } from '$lib/types';
   import ReserveWidget from '$lib/components/ReserveWidget.svelte';
+  import { calculateAutoReserveTarget } from '$lib/settings';
   
   $: treasuryId = $page.params.id as string;
   
@@ -41,6 +42,10 @@
   let categoryType: 'income' | 'expense' = 'income';
   
   let newReserveAmount = '';
+  let reserveMode: 'auto' | 'manual' = 'manual';
+  let reserveMonths = 3;
+
+  $: autoReserveCalc = calculateAutoReserveTarget(transactions, reserveMonths);
 
   $: balance = calculateBalance(transactions);
   $: categoryBreakdown = getCategoryBreakdown(transactions);
@@ -142,8 +147,16 @@
   }
 
   async function handleUpdateReserve() {
-    if (!treasury || !newReserveAmount) return;
-    await updatePrudentReserve(treasury.id, parseFloat(newReserveAmount));
+    if (!treasury) return;
+    let amount: number;
+    if (reserveMode === 'auto') {
+      if (!autoReserveCalc.hasEnoughData) return;
+      amount = autoReserveCalc.target;
+    } else {
+      if (!newReserveAmount) return;
+      amount = parseFloat(newReserveAmount);
+    }
+    await updatePrudentReserve(treasury.id, amount, reserveMode, reserveMonths);
     await reloadTreasury();
     newReserveAmount = '';
     showEditReserve = false;
@@ -329,6 +342,8 @@
           {treasury} 
           currentBalance={balance}
           onEdit={() => {
+            reserveMode = treasury?.prudentReserveMode ?? 'manual';
+            reserveMonths = treasury?.prudentReserveMonths ?? 3;
             newReserveAmount = treasury?.prudentReserve ? String(treasury.prudentReserve) : '';
             showEditReserve = true;
           }}
@@ -661,55 +676,121 @@
       <div style="position: fixed; inset: 0; background: rgba(10,10,10,0.7); display: flex;
                   align-items: center; justify-content: center; padding: 20px; z-index: 50;"
            on:click|self={() => showEditReserve = false}>
-        <div class="nb-card" style="width: 100%; max-width: 440px; padding: 32px;">
+        <div class="nb-card" style="width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto;">
 
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
-            <h2 style="font-size: 1.1rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em;">
-              Set Prudent Reserve
-            </h2>
+          <!-- Header strip -->
+          <div class="nb-strip" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 20px;">
+            <span>Set Prudent Reserve</span>
             <button
               on:click={() => showEditReserve = false}
-              style="background: none; border: none; cursor: pointer; font-size: 1.5rem;
-                     font-weight: 900; line-height: 1; padding: 4px 8px; min-height: 44px;"
-            >
-              ×
-            </button>
+              style="background: none; border: none; color: #FFE500; font-size: 1.4rem;
+                     font-weight: 900; cursor: pointer; line-height: 1; min-height: 36px; padding: 0 4px;"
+            >×</button>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 16px;">
-            <div>
-              <label for="reserveAmount" class="nb-label">Target Amount ($)</label>
-              <input
-                id="reserveAmount"
-                type="number"
-                step="0.01"
-                min="0"
-                bind:value={newReserveAmount}
-                placeholder="0.00"
-                class="nb-input"
-                style="font-size: 1.5rem; font-weight: 900;"
-              />
+          <div style="padding: 24px 20px; display: flex; flex-direction: column; gap: 18px;">
+
+            <!-- Mode toggle -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 3px solid #0A0A0A;">
+              <button
+                on:click={() => reserveMode = 'auto'}
+                style="padding: 13px; font-weight: 900; font-size: 0.8rem; text-transform: uppercase;
+                       letter-spacing: 0.06em; cursor: pointer; border: none; border-right: 2px solid #0A0A0A;
+                       background: {reserveMode === 'auto' ? '#FFE500' : '#FFFFFF'};
+                       color: #0A0A0A; min-height: 50px;"
+              >⚡ Auto-Calculate</button>
+              <button
+                on:click={() => reserveMode = 'manual'}
+                style="padding: 13px; font-weight: 900; font-size: 0.8rem; text-transform: uppercase;
+                       letter-spacing: 0.06em; cursor: pointer; border: none;
+                       background: {reserveMode === 'manual' ? '#0A0A0A' : '#FFFFFF'};
+                       color: {reserveMode === 'manual' ? '#FAFAF0' : '#0A0A0A'}; min-height: 50px;"
+              >✎ Fixed Amount</button>
             </div>
 
-            <p style="font-size: 0.8rem; font-weight: 600; color: #444; line-height: 1.5;">
-              The prudent reserve is a savings target for this treasury. 
-              AA suggests 2-3 months of operating expenses.
-            </p>
+            {#if reserveMode === 'auto'}
+              <!-- Auto mode -->
+              <div>
+                <label for="reserveMonths" class="nb-label">Months of Expenses to Maintain</label>
+                <input
+                  id="reserveMonths"
+                  type="number"
+                  min="1"
+                  max="12"
+                  bind:value={reserveMonths}
+                  class="nb-input"
+                  style="font-size: 1.5rem; font-weight: 900; text-align: center; max-width: 110px;"
+                />
+              </div>
 
+              {#if autoReserveCalc.hasEnoughData}
+                <div style="background: #F5F5F0; border: 3px solid #0A0A0A; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+                  <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                    <span style="font-size: 0.68rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: #666;">
+                      Avg Monthly Expenses
+                    </span>
+                    <span style="font-weight: 900;">{formatCurrency(autoReserveCalc.monthlyBurn)}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; border-top: 2px solid #0A0A0A; padding-top: 10px;">
+                    <span style="font-size: 0.68rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: #666;">
+                      Calculated Target
+                    </span>
+                    <span style="font-weight: 900; font-size: 1.2rem;">{formatCurrency(autoReserveCalc.target)}</span>
+                  </div>
+                </div>
+                <p style="font-size: 0.78rem; font-weight: 600; color: #666; line-height: 1.5;">
+                  Based on your last 3 months of expenses. AA recommends 2–3 months.
+                </p>
+              {:else}
+                <div style="background: #F5F5F0; border: 3px solid #0A0A0A; padding: 16px; text-align: center;">
+                  <p style="font-size: 0.85rem; font-weight: 700; color: #888;">
+                    No expense transactions found in the last 3 months.
+                  </p>
+                  <p style="font-size: 0.78rem; font-weight: 600; color: #aaa; margin-top: 4px;">
+                    Add some transactions first, or use Fixed Amount instead.
+                  </p>
+                </div>
+              {/if}
+
+            {:else}
+              <!-- Manual mode -->
+              <div>
+                <label for="reserveAmount" class="nb-label">Target Amount ($)</label>
+                <div style="position: relative;">
+                  <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+                                font-weight: 900; font-size: 1.2rem; color: #0A0A0A; pointer-events: none;">$</span>
+                  <input
+                    id="reserveAmount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    bind:value={newReserveAmount}
+                    placeholder="0.00"
+                    class="nb-input"
+                    style="padding-left: 34px; font-size: 1.4rem; font-weight: 900;"
+                  />
+                </div>
+              </div>
+              <p style="font-size: 0.78rem; font-weight: 600; color: #666; line-height: 1.5;">
+                Set a specific dollar amount as your prudent reserve target.
+              </p>
+            {/if}
+
+            <!-- Actions -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px;">
               <button on:click={() => showEditReserve = false} class="nb-btn nb-btn-white">
                 Cancel
               </button>
               <button
                 on:click={handleUpdateReserve}
-                disabled={!newReserveAmount}
+                disabled={reserveMode === 'auto' ? !autoReserveCalc.hasEnoughData : !newReserveAmount}
                 class="nb-btn nb-btn-yellow"
               >
                 Save →
               </button>
             </div>
-          </div>
 
+          </div>
         </div>
       </div>
     {/if}

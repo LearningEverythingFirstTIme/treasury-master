@@ -13,7 +13,9 @@ export async function createTreasury(userId: string, name: string, description: 
     name,
     description,
     categories: [],
-    prudentReserve: 0, // Default: no target set
+    prudentReserve: 0,
+    prudentReserveMode: 'manual',
+    prudentReserveMonths: 3,
     createdAt: serverTimestamp()
   });
   return docRef.id;
@@ -28,6 +30,8 @@ export async function getUserTreasuries(userId: string): Promise<Treasury[]> {
       id: doc.id,
       ...data,
       prudentReserve: data.prudentReserve ?? 0,
+      prudentReserveMode: data.prudentReserveMode ?? 'manual',
+      prudentReserveMonths: data.prudentReserveMonths ?? 3,
       createdAt: data.createdAt?.toDate() || new Date()
     } as Treasury;
   });
@@ -47,10 +51,17 @@ export async function removeCategory(treasuryId: string, category: string): Prom
   });
 }
 
-export async function updatePrudentReserve(treasuryId: string, amount: number): Promise<void> {
+export async function updatePrudentReserve(
+  treasuryId: string,
+  amount: number,
+  mode: 'auto' | 'manual' = 'manual',
+  months: number = 3
+): Promise<void> {
   const ref = doc(db, 'treasuries', treasuryId);
   await updateDoc(ref, {
-    prudentReserve: Math.max(0, amount)
+    prudentReserve: Math.max(0, amount),
+    prudentReserveMode: mode,
+    prudentReserveMonths: months
   });
 }
 

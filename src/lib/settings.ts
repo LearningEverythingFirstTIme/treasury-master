@@ -1,6 +1,6 @@
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
-import type { UserSettings } from './types';
+import type { Transaction, UserSettings } from './types';
 
 export type { UserSettings };
 
@@ -63,6 +63,30 @@ export async function updateReserveMonths(userId: string, months: number): Promi
     console.error('Failed to save settings:', err);
     throw err;
   }
+}
+
+// Calculate the auto reserve target from recent transaction history.
+// Uses last 3 months of expenses as the burn rate, multiplied by `months`.
+export function calculateAutoReserveTarget(
+  transactions: Transaction[],
+  months: number
+): { monthlyBurn: number; target: number; hasEnoughData: boolean } {
+  const now = new Date();
+  const cutoff = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+
+  const recentExpenses = transactions.filter(
+    t => t.type === 'expense' && t.date >= cutoff
+  );
+
+  if (recentExpenses.length === 0) {
+    return { monthlyBurn: 0, target: 0, hasEnoughData: false };
+  }
+
+  const totalRecent = recentExpenses.reduce((sum, t) => sum + t.amount, 0);
+  const monthlyBurn = totalRecent / 3;
+  const target = monthlyBurn * months;
+
+  return { monthlyBurn, target, hasEnoughData: true };
 }
 
 // Simple reserve status calculation based on dollar amounts

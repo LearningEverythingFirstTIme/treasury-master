@@ -2,10 +2,10 @@
   import { page } from '$app/stores';
   import { user, loading } from '$lib/auth';
   import { goto } from '$app/navigation';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import {
     getUserTreasuries,
-    getTreasuryTransactions,
+    subscribeTreasuryTransactions,
     addTransaction,
     deleteTransaction,
     calculateBalance,
@@ -28,6 +28,8 @@
   let showAddTransaction = false;
   let showManageCategories = false;
   let showEditReserve = false;
+
+  let unsubscribeTransactions: (() => void) | null = null;
 
   let newAmount = '';
   let newType: 'income' | 'expense' = 'income';
@@ -69,12 +71,36 @@
       const treasuries = await getUserTreasuries($user.uid);
       treasury = treasuries.find((t: Treasury) => t.id === treasuryId) || null;
       if (treasury) {
-        transactions = await getTreasuryTransactions(treasuryId);
+        // Cancel any previous listener before starting a new one
+        if (unsubscribeTransactions) unsubscribeTransactions();
+        unsubscribeTransactions = subscribeTreasuryTransactions(
+          treasuryId,
+          (txns) => {
+            transactions = txns;
+            loadingData = false;
+          },
+          (err) => {
+            console.error('Transaction listener error:', err);
+            loadingData = false;
+          }
+        );
+      } else {
+        loadingData = false;
       }
     } catch (err) {
       console.error('Error loading data:', err);
-    } finally {
       loadingData = false;
+    }
+  }
+
+  // Reload only the treasury document (for category updates) without re-subscribing
+  async function reloadTreasury() {
+    if (!$user) return;
+    try {
+      const treasuries = await getUserTreasuries($user.uid);
+      treasury = treasuries.find((t: Treasury) => t.id === treasuryId) || null;
+    } catch (err) {
+      console.error('Error reloading treasury:', err);
     }
   }
 
@@ -87,7 +113,7 @@
       note: newNote,
       date: new Date(newDate)
     });
-    await loadData();
+    // No manual reload needed — the onSnapshot listener updates transactions automatically
     newAmount = '';
     newNote = '';
     newDate = new Date().toISOString().split('T')[0];
@@ -97,30 +123,34 @@
   async function handleDeleteTransaction(id: string) {
     if (confirm('Delete this transaction?')) {
       await deleteTransaction(id);
-      await loadData();
+      // No manual reload needed — the onSnapshot listener updates automatically
     }
   }
 
   async function handleAddCategory() {
     if (!newCategoryName.trim() || !treasury) return;
     await addCategory(treasury.id, newCategoryName.trim());
-    await loadData();
+    await reloadTreasury();
     newCategoryName = '';
   }
 
   async function handleRemoveCategory(category: string) {
     if (!treasury) return;
     await removeCategory(treasury.id, category);
-    await loadData();
+    await reloadTreasury();
   }
 
   async function handleUpdateReserve() {
     if (!treasury || !newReserveAmount) return;
     await updatePrudentReserve(treasury.id, parseFloat(newReserveAmount));
-    await loadData();
+    await reloadTreasury();
     newReserveAmount = '';
     showEditReserve = false;
   }
+
+  onDestroy(() => {
+    if (unsubscribeTransactions) unsubscribeTransactions();
+  });
 
   function formatCurrency(amount: number): string {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);

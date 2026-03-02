@@ -1,4 +1,4 @@
-import { collection, addDoc, deleteDoc, doc, query, where, orderBy, getDocs, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, query, where, orderBy, getDocs, onSnapshot, serverTimestamp, updateDoc, arrayUnion, arrayRemove, type Unsubscribe } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Transaction, Treasury } from './types';
 
@@ -88,6 +88,29 @@ export async function getTreasuryTransactions(treasuryId: string): Promise<Trans
       createdAt: data.createdAt?.toDate() || new Date()
     } as Transaction;
   });
+}
+
+export function subscribeTreasuryTransactions(
+  treasuryId: string,
+  callback: (transactions: Transaction[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  const q = query(
+    transactionsCollection,
+    where('treasuryId', '==', treasuryId),
+    orderBy('date', 'desc')
+  );
+  return onSnapshot(q, (snapshot) => {
+    callback(snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        date: data.date?.toDate() || new Date(),
+        createdAt: data.createdAt?.toDate() || new Date()
+      } as Transaction;
+    }));
+  }, onError);
 }
 
 export function calculateBalance(transactions: Transaction[]): number {

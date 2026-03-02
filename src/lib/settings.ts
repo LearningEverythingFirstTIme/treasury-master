@@ -6,34 +6,64 @@ export type { UserSettings };
 
 const DEFAULT_RESERVE_MONTHS = 3;
 
+// In-memory cache for settings to avoid unnecessary Firestore reads
+const settingsCache: Map<string, UserSettings> = new Map();
+
 export async function getUserSettings(userId: string): Promise<UserSettings> {
-  const ref = doc(db, 'settings', userId);
-  const snap = await getDoc(ref);
-  
-  if (snap.exists()) {
-    const data = snap.data();
-    return {
-      userId,
-      reserveMonths: data.reserveMonths ?? DEFAULT_RESERVE_MONTHS,
-      updatedAt: data.updatedAt?.toDate() || new Date()
-    };
+  // Return cached settings if available
+  if (settingsCache.has(userId)) {
+    return settingsCache.get(userId)!;
   }
   
-  // Return defaults if no settings exist
-  return {
+  try {
+    const ref = doc(db, 'settings', userId);
+    const snap = await getDoc(ref);
+    
+    if (snap.exists()) {
+      const data = snap.data();
+      const settings = {
+        userId,
+        reserveMonths: data.reserveMonths ?? DEFAULT_RESERVE_MONTHS,
+        updatedAt: data.updatedAt?.toDate() || new Date()
+      };
+      settingsCache.set(userId, settings);
+      return settings;
+    }
+  } catch (err) {
+    // Silently fail and return defaults - don't block the UI
+    console.log('Settings read failed, using defaults:', err);
+  }
+  
+  // Return defaults if no settings exist or read failed
+  const defaults = {
     userId,
     reserveMonths: DEFAULT_RESERVE_MONTHS,
     updatedAt: new Date()
   };
+  settingsCache.set(userId, defaults);
+  return defaults;
 }
 
 export async function updateReserveMonths(userId: string, months: number): Promise<void> {
   const ref = doc(db, 'settings', userId);
-  await setDoc(ref, {
+  const settings = {
     userId,
-    reserveMonths: Math.max(1, Math.min(12, months)), // Clamp 1-12
+    reserveMonths: Math.max(1, Math.min(12, months)),
     updatedAt: serverTimestamp()
-  }, { merge: true });
+  };
+  
+  try {
+    await setDoc(ref, settings, { merge: true });
+    // Update cache
+    settingsCache.set(userId, {
+      userId,
+      reserveMonths: settings.reserveMonths,
+      updatedAt: new Date()
+    });
+  } catch (err) {
+    console.error('Failed to save settings:', err);
+    throw err;
+  }
 }
 
 export function calculateMonthlyBurnRate(transactions: { amount: number; type: 'income' | 'expense'; date: Date }[]): number {
@@ -47,7 +77,7 @@ export function calculateMonthlyBurnRate(transactions: { amount: number; type: '
   if (recentExpenses.length === 0) return 0;
   
   const totalExpenses = recentExpenses.reduce((sum, t) => sum + t.amount, 0);
-  return totalExpenses / 3; // Monthly average
+  return totalExpenses / 3;
 }
 
 export function calculateReserveStatus(

@@ -1,12 +1,12 @@
 <script lang="ts">
   import { user, loading, login, signup, logout } from '$lib/auth';
   import { goto } from '$app/navigation';
-  
+
   let email = '';
   let password = '';
   let isLogin = true;
   let error = '';
-  
+
   async function handleSubmit() {
     error = '';
     try {
@@ -22,80 +22,87 @@
   }
 </script>
 
-<div class="min-h-screen flex items-center justify-center p-4">
-  <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-    <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold text-warm-800 mb-2">Jim's Treasury Tracker</h1>
-      <p class="text-warm-600">Simple, peaceful money management</p>
-    </div>
-    
-    {#if $loading}
-      <div class="text-center py-8">
-        <div class="inline-block w-8 h-8 border-4 border-warm-300 border-t-warm-600 rounded-full animate-spin"></div>
+<div class="min-h-screen flex items-center justify-center p-6" style="background: #FAFAF0;">
+  <div class="w-full max-w-sm">
+
+    <!-- Identity block -->
+    <div class="mb-8">
+      <div
+        style="display: inline-block; background: #FFE500; border: 3px solid #0A0A0A;
+               box-shadow: 4px 4px 0 #0A0A0A; padding: 5px 14px; margin-bottom: 18px;"
+      >
+        <span style="font-size: 0.63rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em;">
+          AA Treasury Management
+        </span>
       </div>
-    {:else if $user}
-      <div class="text-center">
-        <p class="text-warm-700 mb-4">Welcome back! You're signed in as {$user.email}</p>
-        <button
-          on:click={() => goto('/')}
-          class="w-full bg-sage-600 text-white font-semibold py-4 px-6 rounded-xl hover:bg-sage-700 mb-3"
-        >
-          Go to My Treasuries
+      <h1 style="font-size: 2.8rem; font-weight: 900; text-transform: uppercase; line-height: 0.95;
+                 letter-spacing: -0.02em; color: #0A0A0A;">
+        Jim's<br>Treasury<br>Tracker
+      </h1>
+    </div>
+
+    <!-- Form card -->
+    <div class="nb-card" style="padding: 28px;">
+
+      {#if $loading}
+        <div style="display: flex; justify-content: center; padding: 24px 0;">
+          <div class="nb-spinner"></div>
+        </div>
+
+      {:else if $user}
+        <p style="font-size: 0.7rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">
+          Signed in
+        </p>
+        <p style="font-weight: 600; color: #555; margin-bottom: 20px; word-break: break-all; font-size: 0.9rem;">
+          {$user.email}
+        </p>
+        <button on:click={() => goto('/')} class="nb-btn nb-btn-yellow" style="margin-bottom: 10px;">
+          Go to Treasuries →
         </button>
-        <button
-          on:click={logout}
-          class="w-full bg-warm-200 text-warm-800 font-semibold py-4 px-6 rounded-xl hover:bg-warm-300"
-        >
+        <button on:click={logout} class="nb-btn nb-btn-white">
           Sign Out
         </button>
-      </div>
-    {:else}
-      <form on:submit|preventDefault={handleSubmit} class="space-y-4">
-        <div>
-          <label for="email" class="block text-sm font-medium text-warm-700 mb-1">Email</label>
-          <input
-            id="email"
-            type="email"
-            bind:value={email}
-            required
-            class="w-full px-4 py-4 rounded-xl border border-warm-300 focus:border-sage-500 focus:ring-2 focus:ring-sage-200 outline-none"
-            placeholder="your@email.com"
-          />
-        </div>
-        
-        <div>
-          <label for="password" class="block text-sm font-medium text-warm-700 mb-1">Password</label>
-          <input
-            id="password"
-            type="password"
-            bind:value={password}
-            required
-            minlength="6"
-            class="w-full px-4 py-4 rounded-xl border border-warm-300 focus:border-sage-500 focus:ring-2 focus:ring-sage-200 outline-none"
-            placeholder="••••••••"
-          />
-        </div>
-        
-        {#if error}
-          <p class="text-red-600 text-sm bg-red-50 p-3 rounded-lg">{error}</p>
-        {/if}
-        
-        <button
-          type="submit"
-          class="w-full bg-sage-600 text-white font-semibold py-4 px-6 rounded-xl hover:bg-sage-700 shadow-md"
-        >
+
+      {:else}
+        <p style="font-size: 0.95rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 22px;">
           {isLogin ? 'Sign In' : 'Create Account'}
-        </button>
-      </form>
-      
-      <div class="mt-6 text-center">
-        <button
-          on:click={() => isLogin = !isLogin}
-          class="text-sage-600 hover:text-sage-700 font-medium"
-        >
-          {isLogin ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
-        </button>
-      </div>
-    {/if}
+        </p>
+
+        <form on:submit|preventDefault={handleSubmit} style="display: flex; flex-direction: column; gap: 14px;">
+          <div>
+            <label for="email" class="nb-label">Email</label>
+            <input id="email" type="email" bind:value={email} required class="nb-input" placeholder="your@email.com" />
+          </div>
+
+          <div>
+            <label for="password" class="nb-label">Password</label>
+            <input id="password" type="password" bind:value={password} required minlength="6" class="nb-input" placeholder="••••••••" />
+          </div>
+
+          {#if error}
+            <div style="background: #FF1744; border: 3px solid #0A0A0A; padding: 12px 14px;
+                        color: #fff; font-weight: 700; font-size: 0.85rem;">
+              {error}
+            </div>
+          {/if}
+
+          <button type="submit" class="nb-btn nb-btn-yellow" style="margin-top: 6px;">
+            {isLogin ? 'Sign In →' : 'Create Account →'}
+          </button>
+        </form>
+
+        <div style="margin-top: 22px; padding-top: 18px; border-top: 3px solid #0A0A0A; text-align: center;">
+          <button
+            on:click={() => { isLogin = !isLogin; error = ''; }}
+            style="background: none; border: none; cursor: pointer; font-weight: 800; font-size: 0.78rem;
+                   text-transform: uppercase; letter-spacing: 0.06em; text-decoration: underline;
+                   text-underline-offset: 4px; color: #0A0A0A; min-height: 44px;"
+          >
+            {isLogin ? 'Need an account? Sign up' : 'Have an account? Sign in'}
+          </button>
+        </div>
+      {/if}
+
+    </div>
   </div>
 </div>

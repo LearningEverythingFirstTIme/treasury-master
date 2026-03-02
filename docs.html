@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jim's Treasury Tracker - Technical Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      look: 'classic',
+      themeVariables: {
+        primaryColor: isDark ? '#2d3a2d' : '#f0fdf4',
+        primaryBorderColor: isDark ? '#65a30d' : '#4d7c0f',
+        primaryTextColor: isDark ? '#f0fdf4' : '#1a2e1a',
+        secondaryColor: isDark ? '#3d2a1f' : '#fff7ed',
+        secondaryBorderColor: isDark ? '#fb923c' : '#c2410c',
+        secondaryTextColor: isDark ? '#fff7ed' : '#3d2a1f',
+        tertiaryColor: isDark ? '#1a1a2e' : '#f8fafc',
+        tertiaryBorderColor: isDark ? '#64748b' : '#94a3b8',
+        tertiaryTextColor: isDark ? '#e2e8f0' : '#1e293b',
+        lineColor: isDark ? '#a69889' : '#8a7e72',
+        fontSize: '15px',
+        fontFamily: "'IBM Plex Sans', system-ui, sans-serif"
+      }
+    });
+  </script>
+  <style>
+    :root {
+      --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+      --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+      --bg: #faf7f5;
+      --surface: #ffffff;
+      --surface2: #f5f0ec;
+      --surface-elevated: #fff9f5;
+      --border: rgba(0, 0, 0, 0.07);
+      --border-bright: rgba(0, 0, 0, 0.14);
+      --text: #292017;
+      --text-dim: #8a7e72;
+      --accent: #c2410c;
+      --accent-dim: rgba(194, 65, 12, 0.07);
+      --sage: #65a30d;
+      --sage-dim: rgba(101, 163, 13, 0.07);
+      --sage-dark: #4d7c0f;
+      --terracotta: #c2410c;
+      --terracotta-dim: rgba(194, 65, 12, 0.07);
+      --warm: #b45309;
+      --warm-dim: rgba(180, 83, 9, 0.07);
+      --red: #dc2626;
+      --red-dim: rgba(220, 38, 38, 0.07);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1412;
+        --surface: #231d1a;
+        --surface2: #2e2622;
+        --surface-elevated: #352d28;
+        --border: rgba(255, 255, 255, 0.06);
+        --border-bright: rgba(255, 255, 255, 0.12);
+        --text: #ede5dd;
+        --text-dim: #a69889;
+        --accent: #fb923c;
+        --accent-dim: rgba(251, 146, 60, 0.12);
+        --sage: #bef264;
+        --sage-dim: rgba(190, 242, 100, 0.1);
+        --sage-dark: #a3e635;
+        --terracotta: #fb923c;
+        --terracotta-dim: rgba(251, 146, 60, 0.12);
+        --warm: #fbbf24;
+        --warm-dim: rgba(251, 191, 36, 0.1);
+        --red: #f87171;
+        --red-dim: rgba(248, 113, 113, 0.1);
+      }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse at 15% 0%, var(--sage-dim) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 100%, var(--terracotta-dim) 0%, transparent 40%);
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate { animation: fadeUp 0.5s ease-out both; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+    .page-header { text-align: center; padding: 60px 0 50px; position: relative; }
+    .page-header::before { content: '💰'; font-size: 48px; display: block; margin-bottom: 16px; opacity: 0.9; }
+    .page-header h1 { font-size: clamp(32px, 5vw, 48px); font-weight: 700; letter-spacing: -1px; margin-bottom: 8px; color: var(--text); }
+    .page-header .subtitle { font-size: 18px; color: var(--text-dim); font-family: var(--font-mono); font-weight: 400; }
+    .page-header .meta { margin-top: 16px; font-size: 13px; color: var(--text-dim); font-family: var(--font-mono); }
+    .nav-toc { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 40px; position: sticky; top: 20px; z-index: 100; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06); }
+    .nav-toc ul { display: flex; flex-wrap: wrap; gap: 8px 20px; list-style: none; justify-content: center; }
+    .nav-toc a { color: var(--text-dim); text-decoration: none; font-size: 13px; font-family: var(--font-mono); font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: all 0.15s ease; }
+    .nav-toc a:hover { color: var(--text); background: var(--surface2); }
+    section { margin-bottom: 60px; }
+    .section-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+    .section-title::before { content: ''; width: 6px; height: 28px; background: var(--sage); border-radius: 3px; }
+    .section-subtitle { color: var(--text-dim); font-size: 15px; margin-bottom: 24px; max-width: 700px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .card--hero { background: var(--surface-elevated); border-color: color-mix(in srgb, var(--border) 50%, var(--sage) 50%); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); }
+    .card--accent { border-left: 3px solid var(--sage); }
+    .card--warn { border-left: 3px solid var(--warm); }
+    .card--danger { border-left: 3px solid var(--red); }
+    .card-label { font-family: var(--font-mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--sage-dark); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .card-label::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    .mermaid-wrap { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px 24px; overflow: auto; display: flex; justify-content: center; align-items: center; min-height: 400px; margin: 20px 0; }
+    .mermaid-wrap .mermaid { zoom: 1.2; }
+    .mermaid .nodeLabel { color: var(--text) !important; }
+    .mermaid .edgeLabel { color: var(--text-dim) !important; background-color: var(--bg) !important; }
+    .mermaid .edgeLabel rect { fill: var(--bg) !important; }
+    .file-tree { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; font-family: var(--font-mono); font-size: 13px; line-height: 2; }
+    .file-tree__dir { color: var(--sage-dark); font-weight: 600; }
+    .file-tree__file { color: var(--text); padding-left: 24px; position: relative; }
+    .file-tree__file::before { content: '└──'; position: absolute; left: 0; color: var(--text-dim); }
+    .file-tree__desc { color: var(--text-dim); font-size: 12px; margin-left: 8px; }
+    .code-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+    .code-block code { color: var(--text); }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin: 20px 0; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th { background: var(--surface2); font-family: var(--font-mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); text-align: left; padding: 14px 16px; border-bottom: 2px solid var(--border-bright); }
+    .data-table td { padding: 14px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table code { font-family: var(--font-mono); font-size: 12px; background: var(--sage-dim); color: var(--sage-dark); padding: 2px 6px; border-radius: 4px; }
+    .data-table .type { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .nav-toc { position: relative; top: 0; } }
+    .component-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .component-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); }
+    .component-card__name { font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--sage-dark); margin-bottom: 8px; }
+    .component-card__desc { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+    .component-card__exports { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .component-card__exports code { font-family: var(--font-mono); font-size: 11px; background: var(--surface2); padding: 2px 6px; border-radius: 4px; color: var(--text); }
+    .badge { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 6px; }
+    .badge--success { background: var(--sage-dim); color: var(--sage-dark); }
+    .badge--warn { background: var(--warm-dim); color: var(--warm); }
+    .badge--danger { background: var(--red-dim); color: var(--red); }
+    details.collapsible { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 16px 0; }
+    details.collapsible summary { padding: 14px 20px; background: var(--surface); font-family: var(--font-mono); font-size: 13px; font-weight: 600; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; color: var(--text); transition: background 0.15s ease; }
+    details.collapsible summary:hover { background: var(--surface2); }
+    details.collapsible summary::-webkit-details-marker { display: none; }
+    details.collapsible summary::before { content: '▸'; font-size: 11px; color: var(--text-dim); transition: transform 0.15s ease; }
+    details.collapsible[open] summary::before { transform: rotate(90deg); }
+    details.collapsible .collapsible__body { padding: 16px 20px; border-top: 1px solid var(--border); font-size: 13px; line-height: 1.6; }
+    .issue-item { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .issue-item:last-child { border-bottom: none; }
+    .issue-item__severity { flex-shrink: 0; }
+    .issue-item__content h4 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .issue-item__content p { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+    .improvement-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; border-left: 3px solid var(--sage); }
+    .improvement-card__title { font-size: 15px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .improvement-card__impact { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; padding: 2px 8px; border-radius: 4px; background: var(--sage-dim); color: var(--sage-dark); }
+    .improvement-card__desc { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+    .page-footer { text-align: center; padding: 40px 0; border-top: 1px solid var(--border); margin-top: 60px; color: var(--text-dim); font-size: 13px; font-family: var(--font-mono); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="page-header animate">
+      <h1>Jim's Treasury Tracker</h1>
+      <p class="subtitle">Technical Documentation & Architecture Overview</p>
+      <p class="meta">SvelteKit + Firebase | Warm, Peaceful Money Management</p>
+    </header>
+
+    <nav class="nav-toc animate" style="animation-delay: 0.1s;">
+      <ul>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#architecture">Architecture</a></li>
+        <li><a href="#dataflow">Data Flow</a></li>
+        <li><a href="#schema">Firebase Schema</a></li>
+        <li><a href="#components">Components</a></li>
+        <li><a href="#structure">File Structure</a></li>
+        <li><a href="#issues">Known Issues</a></li>
+        <li><a href="#improvements">Improvements</a></li>
+      </ul>
+    </nav>
+
+    <section id="overview" class="animate" style="animation-delay: 0.15s;">
+      <h2 class="section-title">Project Overview</h2>
+      <p class="section-subtitle">A simple, peaceful treasury management application built with SvelteKit and Firebase. Designed for tracking income and expenses across multiple treasuries with a warm, approachable interface.</p>
+      <div class="grid-3">
+        <div class="card card--hero">
+          <div class="card-label">Frontend</div>
+          <p><strong>SvelteKit</strong> with TypeScript for a reactive, type-safe UI. Tailwind CSS provides the warm terracotta and sage color palette.</p>
+        </div>
+        <div class="card card--hero">
+          <div class="card-label">Backend</div>
+          <p><strong>Firebase</strong> handles authentication, Firestore database, and real-time updates. Server-side rendering compatible.</p>
+        </div>
+        <div class="card card--hero">
+          <div class="card-label">Features</div>
+          <p>Multi-treasury support, transaction tracking, category management, balance calculations, and responsive mobile-first design.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="architecture" class="animate" style="animation-delay: 0.2s;">
+      <h2 class="section-title">System Architecture</h2>
+      <p class="section-subtitle">High-level overview of the application's component structure and data relationships.</p>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TD
+    subgraph Client["Client (Browser)"]
+        SK[SvelteKit App]
+        ROUTER[SvelteKit Router]
+        STORES[Svelte Stores]
+    end
+    subgraph Pages["Page Components"]
+        LOGIN["/login Login Page"]
+        HOME["/ Treasury List"]
+        TREASURY["/treasury/[id] Treasury Detail"]
+    end
+    subgraph Lib["Library Modules"]
+        AUTH["auth.ts Authentication"]
+        TREAS["treasury.ts Data Operations"]
+        FB["firebase.ts Firebase Config"]
+        TYPES["types.ts Type Definitions"]
+    end
+    subgraph Firebase["Firebase Services"]
+        AUTH_SVC["Firebase Auth"]
+        FIRESTORE["Cloud Firestore"]
+    end
+    subgraph Collections["Firestore Collections"]
+        TREAS_COL[("treasuries")]
+        TRANS_COL[("transactions")]
+    end
+    SK --> ROUTER
+    ROUTER --> LOGIN
+    ROUTER --> HOME
+    ROUTER --> TREASURY
+    LOGIN --> AUTH
+    HOME --> TREAS
+    TREASURY --> TREAS
+    TREASURY --> AUTH
+    AUTH --> FB
+    TREAS --> FB
+    FB --> AUTH_SVC
+    FB --> FIRESTORE
+    FIRESTORE --> TREAS_COL
+    FIRESTORE --> TRANS_COL
+    TREAS_COL -->|"userId"| TRANS_COL
+        </pre>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-label">Authentication Flow</div>
+          <p>Firebase Auth provides email/password authentication. The <code>auth.ts</code> module exports a Svelte store that reacts to auth state changes, enabling reactive UI updates across the application.</p>
+        </div>
+        <div class="card">
+          <div class="card-label">Data Access Pattern</div>
+          <p>All Firestore operations are encapsulated in <code>treasury.ts</code>. This provides a clean API for components while handling Firebase-specific concerns like timestamps and document references.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="dataflow" class="animate" style="animation-delay: 0.25s;">
+      <h2 class="section-title">Data Flow Visualization</h2>
+      <p class="section-subtitle">How data moves through the system during key user interactions.</p>
+      <h3 style="font-size: 18px; margin: 30px 0 16px; color: var(--text-dim);">Creating a Transaction</h3>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+sequenceDiagram
+    actor User
+    participant UI as Treasury Page
+    participant TREAS as treasury.ts
+    participant FB as Firebase
+    participant DB as Firestore
+    User->>UI: Click "Add Transaction"
+    UI->>UI: Open modal, collect input
+    User->>UI: Enter amount, category, date
+    User->>UI: Click "Save Transaction"
+    UI->>TREAS: addTransaction(userId, treasuryId, data)
+    TREAS->>FB: Get Firestore instance
+    TREAS->>DB: addDoc(transactionsCollection, {...})
+    DB-->>TREAS: DocumentReference with ID
+    TREAS-->>UI: Return transaction ID
+    UI->>TREAS: loadData() (refresh)
+    TREAS->>DB: query transactions by treasuryId
+    DB-->>TREAS: Transaction[]
+    TREAS-->>UI: Update transactions array
+    UI->>UI: Recalculate balance & breakdown
+    UI-->>User: Display updated UI
+        </pre>
+      </div>
+      <h3 style="font-size: 18px; margin: 30px 0 16px; color: var(--text-dim);">Authentication State</h3>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TD
+    A[App Load] --> B{Browser?}
+    B -->|Yes| C[Import Firebase Auth]
+    B -->|No| D[Set loading=false user=null]
+    C --> E[onAuthStateChanged]
+    E --> F{User?}
+    F -->|Logged In| G[user.set(user)]
+    F -->|Logged Out| H[user.set(null)]
+    G --> I[loading.set(false)]
+    H --> I
+    D --> J[Render Login Page]
+    I --> K{User?}
+    K -->|Yes| L[Render App]
+    K -->|No| J
+        </pre>
+      </div>
+    </section>
+
+    <section id="schema" class="animate" style="animation-delay: 0.3s;">
+      <h2 class="section-title">Firebase Schema Documentation</h2>
+      <p class="section-subtitle">Firestore collections, document structures, and relationships.</p>
+      <div class="card card--accent">
+        <div class="card-label">Collection: treasuries</div>
+        <p style="margin-bottom: 16px;">Stores treasury containers. Each treasury belongs to a single user.</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>userId</code></td><td class="type">string</td><td><span class="badge badge--success">Yes</span></td><td>Firebase Auth UID of the owner</td></tr>
+              <tr><td><code>name</code></td><td class="type">string</td><td><span class="badge badge--success">Yes</span></td><td>Display name of the treasury</td></tr>
+              <tr><td><code>description</code></td><td class="type">string</td><td><span class="badge badge--warn">No</span></td><td>Optional description/notes</td></tr>
+              <tr><td><code>categories</code></td><td class="type">string[]</td><td><span class="badge badge--success">Yes</span></td><td>Custom categories added by user</td></tr>
+              <tr><td><code>createdAt</code></td><td class="type">Timestamp</td><td><span class="badge badge--success">Yes</span></td><td>Server timestamp on creation</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card card--accent">
+        <div class="card-label">Collection: transactions</div>
+        <p style="margin-bottom: 16px;">Stores individual income/expense transactions. Linked to a treasury via treasuryId.</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>userId</code></td><td class="type">string</td><td><span class="badge badge--success">Yes</span></td><td>Firebase Auth UID of the creator</td></tr>
+              <tr><td><code>treasuryId</code></td><td class="type">string</td><td><span class="badge badge--success">Yes</span></td><td>Reference to parent treasury document</td></tr>
+              <tr><td><code>amount</code></td><td class="type">number</td><td><span class="badge badge--success">Yes</span></td><td>Transaction amount (positive number)</td></tr>
+              <tr><td><code>type</code></td><td class="type">'income' | 'expense'</td><td><span class="badge badge--success">Yes</span></td><td>Determines if amount adds or subtracts</td></tr>
+              <tr><td><code>category</code></td><td class="type">string</td><td><span class="badge badge--success">Yes</span></td><td>Category name for grouping</td></tr>
+              <tr><td><code>note</code></td><td class="type">string</td><td><span class="badge badge--warn">No</span></td><td>Optional description of transaction</td></tr>
+              <tr><td><code>date</code></td><td class="type">Timestamp</td><td><span class="badge badge--success">Yes</span></td><td>Transaction date (user-specified)</td></tr>
+              <tr><td><code>createdAt</code></td><td class="type">Timestamp</td><td><span class="badge badge--success">Yes</span></td><td>Server timestamp on creation</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Default Categories</div>
+        <p style="margin-bottom: 12px;">Hardcoded in <code>types.ts</code> and merged with custom treasury categories:</p>
+        <div class="code-block"><code>DEFAULT_CATEGORIES = {
+  income: ['Donation', 'Meeting Contributions', 'Fundraiser', 'Other Income'],
+  expense: ['Rent', 'Literature', 'Coffee/Refreshments', 'Supplies', 'Group Activities', 'Other Expense']
+}</code></div>
+      </div>
+    </section>
+
+    <section id="components" class="animate" style="animation-delay: 0.35s;">
+      <h2 class="section-title">Component Breakdown</h2>
+      <p class="section-subtitle">Library modules and their exported functions.</p>
+      <div class="grid-2">
+        <div class="component-card">
+          <div class="component-card__name">auth.ts</div>
+          <div class="component-card__desc">Svelte stores and authentication actions. Handles Firebase Auth integration with SSR compatibility.</div>
+          <div class="component-card__exports"><code>user</code> <code>loading</code> <code>login()</code> <code>signup()</code> <code>logout()</code></div>
+        </div>
+        <div class="component-card">
+          <div class="component-card__name">firebase.ts</div>
+          <div class="component-card__desc">Firebase app initialization and service instances. Guards against SSR with browser checks.</div>
+          <div class="component-card__exports"><code>auth</code> <code>db</code></div>
+        </div>
+        <div class="component-card">
+          <div class="component-card__name">treasury.ts</div>
+          <div class="component-card__desc">All Firestore data operations for treasuries and transactions. Includes utility functions for calculations.</div>
+          <div class="component-card__exports"><code>createTreasury()</code> <code>getUserTreasuries()</code> <code>addTransaction()</code> <code>deleteTransaction()</code> <code>getTreasuryTransactions()</code> <code>calculateBalance()</code> <code>getCategoryBreakdown()</code> <code>addCategory()</code> <code>removeCategory()</code></div>
+        </div>
+        <div class="component-card">
+          <div class="component-card__name">types.ts</div>
+          <div class="component-card__desc">TypeScript interfaces and constants. Defines data structures used throughout the application.</div>
+          <div class="component-card__exports"><code>Transaction</code> <code>Treasury</code> <code>DEFAULT_CATEGORIES</code></div>
+        </div>
+      </div>
+      <h3 style="font-size: 18px; margin: 30px 0 16px; color: var(--text-dim);">Page Components</h3>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Route</th><th>Component</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>/login</code></td><td>login/+page.svelte</td><td>Authentication page with login/signup toggle and form handling</td></tr>
+            <tr><td><code>/</code></td><td>+page.svelte</td><td>Treasury list view with create modal. Redirects to login if unauthenticated</td></tr>
+            <tr><td><code>/treasury/[id]</code></td><td>treasury/[id]/+page.svelte</td><td>Detail view showing balance, transactions, category breakdown. Add transaction modal</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="structure" class="animate" style="animation-delay: 0.4s;">
+      <h2 class="section-title">File Structure Map</h2>
+      <p class="section-subtitle">Complete project organization and file purposes.</p>
+      <div class="file-tree">
+        <div class="file-tree__dir">jim-treasury-tracker/</div>
+        <div class="file-tree__file">package.json <span class="file-tree__desc">- Dependencies: sveltekit, firebase, tailwindcss, vite</span></div>
+        <div class="file-tree__file">svelte.config.js <span class="file-tree__desc">- SvelteKit adapter configuration</span></div>
+        <div class="file-tree__file">tailwind.config.js <span class="file-tree__desc">- Custom warm color palette (warm-*, sage-*)</span></div>
+        <div class="file-tree__file">vite.config.ts <span class="file-tree__desc">- Vite bundler configuration</span></div>
+        <div class="file-tree__file">tsconfig.json <span class="file-tree__desc">- TypeScript compiler options</span></div>
+        <div class="file-tree__dir" style="margin-top: 12px;">src/</div>
+        <div class="file-tree__file">app.html <span class="file-tree__desc">- HTML template with viewport meta</span></div>
+        <div class="file-tree__file">app.css <span class="file-tree__desc">- Global styles and Tailwind directives</span></div>
+        <div class="file-tree__dir" style="margin-top: 8px;">src/lib/</div>
+        <div class="file-tree__file">firebase.ts <span class="file-tree__desc">- Firebase initialization with SSR guards</span></div>
+        <div class="file-tree__file">auth.ts <span class="file-tree__desc">- Auth stores and login/logout/signup functions</span></div>
+        <div class="file-tree__file">treasury.ts <span class="file-tree__desc">- Firestore CRUD operations and calculations</span></div>
+        <div class="file-tree__file">types.ts <span class="file-tree__desc">- TypeScript interfaces and constants</span></div>
+        <div class="file-tree__dir" style="margin-top: 8px;">src/routes/</div>
+        <div class="file-tree__file">+page.svelte <span class="file-tree__desc">- Treasury list page</span></div>
+        <div class="file-tree__file">+layout.svelte <span class="file-tree__desc">- Root layout with auth redirect</span></div>
+        <div class="file-tree__dir" style="margin-top: 8px;">src/routes/login/</div>
+        <div class="file-tree__file">+page.svelte <span class="file-tree__desc">- Login/signup page</span></div>
+        <div class="file-tree__dir" style="margin-top: 8px;">src/routes/treasury/[id]/</div>
+        <div class="file-tree__file">+page.svelte <span class="file-tree__desc">- Treasury detail with transactions</span></div>
+      </div>
+    </section>
+
+    <section id="issues" class="animate" style="animation-delay: 0.45s;">
+      <h2 class="section-title">Known Issues</h2>
+      <p class="section-subtitle">Current limitations and technical debt to be aware of.</p>
+      <div class="card">
+        <div class="issue-item">
+          <div class="issue-item__severity"><span class="badge badge--warn">Medium</span></div>
+          <div class="issue-item__content">
+            <h4>Category Type Ambiguity</h4>
+            <p>Custom categories added via <code>addCategory()</code> don't store whether they're income or expense categories. The UI merges defaults with custom categories for both types, which could lead to categorization confusion.</p>
+          </div>
+        </div>
+        <div class="issue-item">
+          <div class="issue-item__severity"><span class="badge badge--warn">Medium</span></div>
+          <div class="issue-item__content">
+            <h4>No Real-time Updates</h4>
+            <p>Data is fetched on page load and after explicit actions. Multiple users viewing the same treasury won't see each other's changes without refreshing.</p>
+          </div>
+        </div>
+        <div class="issue-item">
+          <div class="issue-item__severity"><span class="badge badge--warn">Low</span></div>
+          <div class="issue-item__content">
+            <h4>Missing Input Validation</h4>
+            <p>Amount inputs rely on HTML5 number type but don't have explicit validation for negative numbers or extremely large values in the business logic.</p>
+          </div>
+        </div>
+        <div class="issue-item">
+          <div class="issue-item__severity"><span class="badge badge--danger">Security</span></div>
+          <div class="issue-item__content">
+            <h4>No Firestore Security Rules Documented</h4>
+            <p>The application assumes client-side filtering by userId, but Firestore security rules should be configured to enforce user isolation at the database level.</p>
+          </div>
+        </div>
+        <div class="issue-item">
+          <div class="issue-item__severity"><span class="badge badge--warn">Low</span></div>
+          <div class="issue-item__content">
+            <h4>SSR Compatibility Gaps</h4>
+            <p>While firebase.ts has SSR guards, some reactive statements in pages may still attempt to access browser-only APIs during server rendering.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="improvements" class="animate" style="animation-delay: 0.5s;">
+      <h2 class="section-title">Improvement Opportunities</h2>
+      <p class="section-subtitle">Potential enhancements for future development.</p>
+      <div class="grid-2">
+        <div class="improvement-card">
+          <div class="improvement-card__title">Real-time Sync <span class="improvement-card__impact">High</span></div>
+          <div class="improvement-card__desc">Use Firestore onSnapshot listeners to enable live updates across clients. This would allow multiple treasurers to collaborate simultaneously.</div>
+        </div>
+        <div class="improvement-card">
+          <div class="improvement-card__title">Export Functionality <span class="improvement-card__impact">Medium</span></div>
+          <div class="improvement-card__desc">Add CSV/PDF export for treasuries and transactions. Useful for reporting and backup purposes.</div>
+        </div>
+        <div class="improvement-card">
+          <div class="improvement-card__title">Transaction Search & Filter <span class="improvement-card__impact">Medium</span></div>
+          <div class="improvement-card__desc">Add search by note/category and date range filtering for transaction history.</div>
+        </div>
+        <div class="improvement-card">
+          <div class="improvement-card__title">Recurring Transactions <span class="improvement-card__impact">Medium</span></div>
+          <div class="improvement-card__desc">Support scheduled recurring transactions for regular expenses like rent or monthly donations.</div>
+        </div>
+        <div class="improvement-card">
+          <div class="improvement-card__title">Budget Planning <span class="improvement-card__impact">Low</span></div>
+          <div class="improvement-card__desc">Add budget categories with spending limits and visual progress indicators.</div>
+        </div>
+        <div class="improvement-card">
+          <div class="improvement-card__title">Offline Support <span class="improvement-card__impact">High</span></div>
+          <div class="improvement-card__desc">Enable Firestore offline persistence so users can add transactions without connectivity.</div>
+        </div>
+        <div class="improvement-card">
+          <div class="improvement-card__title">Data Visualization <span class="improvement-card__impact">Low</span></div>
+          <div class="improvement-card__desc">Add charts for spending trends over time using Chart.js or similar library.</div>
+        </div>
+        <div class="improvement-card">
+          <div class="improvement-card__title">Multi-user Treasury Access <span class="improvement-card__impact">High</span></div>
+          <div class="improvement-card__desc">Allow multiple users to manage the same treasury with role-based permissions (viewer, editor, admin).</div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      <p>Jim's Treasury Tracker Documentation</p>
+      <p style="margin-top: 4px; opacity: 0.7;">Generated with visual-explainer skill</p>
+    </footer>
+  </div>
+</body>
+</html>

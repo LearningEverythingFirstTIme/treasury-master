@@ -199,10 +199,7 @@
 <!-- ══════════════════════════════════════════════════════ -->
 <!--  Main view                                             -->
 <!-- ══════════════════════════════════════════════════════ -->
-{:else if !settings}
-  <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #FAFAF0;">
-    <div class="nb-spinner"></div>
-  </div>
+{:else}
   <div style="min-height: 100vh; background: #FAFAF0; padding-bottom: 80px;">
 
     <!-- ── Sticky header ──────────────────────────────── -->

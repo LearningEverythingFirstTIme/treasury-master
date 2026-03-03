@@ -31,12 +31,15 @@
   let showEditReserve = false;
 
   let unsubscribeTransactions: (() => void) | null = null;
+  let listenerError = '';
 
   let newAmount = '';
   let newType: 'income' | 'expense' = 'income';
   let newCategory = '';
   let newNote = '';
   let newDate = new Date().toISOString().split('T')[0];
+
+  let submitting = false;
 
   let newCategoryName = '';
   let categoryType: 'income' | 'expense' = 'income';
@@ -83,10 +86,12 @@
           treasuryId,
           (txns) => {
             transactions = txns;
+            listenerError = '';
             loadingData = false;
           },
           (err) => {
             console.error('Transaction listener error:', err);
+            listenerError = 'Could not load transactions. Check your connection and try again.';
             loadingData = false;
           }
         );
@@ -111,19 +116,24 @@
   }
 
   async function handleAddTransaction() {
-    if (!$user || !newAmount || !newCategory) return;
-    await addTransaction($user.uid, treasuryId, {
-      amount: parseFloat(newAmount),
-      type: newType,
-      category: newCategory,
-      note: newNote,
-      date: new Date(newDate)
-    });
-    // No manual reload needed — the onSnapshot listener updates transactions automatically
-    newAmount = '';
-    newNote = '';
-    newDate = new Date().toISOString().split('T')[0];
-    showAddTransaction = false;
+    if (!$user || !newAmount || !newCategory || submitting) return;
+    submitting = true;
+    try {
+      await addTransaction($user.uid, treasuryId, {
+        amount: parseFloat(newAmount),
+        type: newType,
+        category: newCategory,
+        note: newNote,
+        date: new Date(newDate + 'T00:00:00')
+      });
+      // No manual reload needed — the onSnapshot listener updates transactions automatically
+      newAmount = '';
+      newNote = '';
+      newDate = new Date().toISOString().split('T')[0];
+      showAddTransaction = false;
+    } finally {
+      submitting = false;
+    }
   }
 
   async function handleDeleteTransaction(id: string) {
@@ -382,6 +392,20 @@
         </div>
       {/if}
 
+      <!-- ── Listener error banner ──────────────────── -->
+      {#if listenerError}
+        <div style="background: #FF1744; border: 3px solid #0A0A0A; box-shadow: 4px 4px 0 #0A0A0A;
+                    padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <p style="color: #fff; font-weight: 700; font-size: 0.9rem;">{listenerError}</p>
+          <button
+            on:click={loadData}
+            style="background: #fff; border: 2px solid #fff; color: #FF1744; font-weight: 900;
+                   font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em;
+                   cursor: pointer; padding: 6px 12px; min-height: 36px; flex-shrink: 0;"
+          >Retry</button>
+        </div>
+      {/if}
+
       <!-- ── Transactions ────────────────────────────── -->
       <div class="nb-card" style="overflow: hidden;">
         <div class="nb-strip">Recent Transactions</div>
@@ -547,13 +571,13 @@
 
             <button
               on:click={handleAddTransaction}
-              disabled={!newAmount || !newCategory}
+              disabled={!newAmount || !newCategory || submitting}
               class="nb-btn"
               style="background: {newType === 'income' ? '#00C853' : '#FF1744'};
                      color: {newType === 'income' ? '#0A0A0A' : '#fff'};
-                     font-size: 1rem;"
+                     font-size: 1rem; {submitting ? 'opacity: 0.6;' : ''}"
             >
-              Save Transaction ✓
+              {submitting ? 'Saving...' : 'Save Transaction ✓'}
             </button>
 
           </div>

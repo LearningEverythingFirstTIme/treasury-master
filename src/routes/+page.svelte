@@ -10,6 +10,7 @@
   let newDescription = '';
   let creating = false;
   let loadError = '';
+  let createError = '';
   let isLoading = true;
 
   onMount(() => {
@@ -48,12 +49,15 @@
   async function handleCreate() {
     if (!$user || !newName.trim()) return;
     creating = true;
+    createError = '';
     try {
       await createTreasury($user.uid, newName.trim(), newDescription.trim());
       await loadTreasuries();
       showCreate = false;
       newName = '';
       newDescription = '';
+    } catch (err: any) {
+      createError = err.message || 'Failed to create treasury. Please try again.';
     } finally {
       creating = false;
     }
@@ -132,7 +136,7 @@
           <p style="color: #444; font-weight: 600; margin-bottom: 28px; font-size: 0.9rem;">
             Create your first treasury to start tracking
           </p>
-          <button on:click={() => showCreate = true} class="nb-btn nb-btn-black">
+          <button on:click={() => { showCreate = true; createError = ''; }} class="nb-btn nb-btn-black">
             + Create First Treasury
           </button>
         </div>
@@ -180,7 +184,7 @@
 
           {#if !showCreate}
             <button
-              on:click={() => showCreate = true}
+              on:click={() => { showCreate = true; createError = ''; }}
               style="width: 100%; background: #FAFAF0; border: 3px dashed #0A0A0A; color: #0A0A0A;
                      font-weight: 900; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.07em;
                      cursor: pointer; padding: 20px; min-height: 52px;
@@ -238,8 +242,15 @@
               />
             </div>
 
+            {#if createError}
+              <div style="background: #FF1744; border: 3px solid #0A0A0A; padding: 12px 14px;
+                          color: #fff; font-weight: 700; font-size: 0.85rem;">
+                {createError}
+              </div>
+            {/if}
+
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px;">
-              <button on:click={() => showCreate = false} class="nb-btn nb-btn-white">
+              <button on:click={() => { showCreate = false; createError = ''; }} class="nb-btn nb-btn-white">
                 Cancel
               </button>
               <button

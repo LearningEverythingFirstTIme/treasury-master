@@ -111,7 +111,7 @@ export function calculateReserveStatus(
     };
   }
   
-  const percentCovered = Math.min(100, (currentBalance / targetReserve) * 100);
+  const percentCovered = Math.max(0, Math.min(100, (currentBalance / targetReserve) * 100));
   const surplus = currentBalance - targetReserve;
   
   let status: 'healthy' | 'caution' | 'low' | 'unset';

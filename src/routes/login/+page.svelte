@@ -1,14 +1,24 @@
 <script lang="ts">
   import { user, loading, login, signup, logout } from '$lib/auth';
   import { goto } from '$app/navigation';
+  import { trigger, hapticsSupported } from '$lib/haptics';
+  import { browser } from '$app/environment';
 
   let email = '';
   let password = '';
   let isLogin = true;
   let error = '';
+  let hapticsReady = false;
+
+  if (browser) hapticsReady = hapticsSupported();
+
+  function haptic(type: 'light' | 'medium' | 'success' | 'error' = 'light') {
+    if (hapticsReady) trigger(type);
+  }
 
   async function handleSubmit() {
     error = '';
+    haptic('light');
     try {
       if (isLogin) {
         await login(email, password);
@@ -18,6 +28,7 @@
       goto('/');
     } catch (e: any) {
       error = e.message || 'Authentication failed';
+      haptic('error');
     }
   }
 </script>
@@ -56,10 +67,10 @@
         <p style="font-weight: 600; color: #555; margin-bottom: 20px; word-break: break-all; font-size: 0.9rem;">
           {$user.email}
         </p>
-        <button on:click={() => goto('/')} class="nb-btn nb-btn-yellow" style="margin-bottom: 10px;">
+        <button on:click={() => { goto('/'); haptic('light'); }} class="nb-btn nb-btn-yellow" style="margin-bottom: 10px;">
           Go to Treasuries →
         </button>
-        <button on:click={logout} class="nb-btn nb-btn-white">
+        <button on:click={() => { logout(); haptic('medium'); }} class="nb-btn nb-btn-white">
           Sign Out
         </button>
 
@@ -93,7 +104,7 @@
 
         <div style="margin-top: 22px; padding-top: 18px; border-top: 3px solid #0A0A0A; text-align: center;">
           <button
-            on:click={() => { isLogin = !isLogin; error = ''; }}
+            on:click={() => { isLogin = !isLogin; error = ''; haptic('light'); }}
             style="background: none; border: none; cursor: pointer; font-weight: 800; font-size: 0.78rem;
                    text-transform: uppercase; letter-spacing: 0.06em; text-decoration: underline;
                    text-underline-offset: 4px; color: #0A0A0A; min-height: 44px;"

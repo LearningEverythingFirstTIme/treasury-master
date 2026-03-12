@@ -4,6 +4,17 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { browser } from '$app/environment';
+  import { trigger, hapticsSupported } from '$lib/haptics';
+
+  let hapticsReady = false;
+  
+  $: if (browser) {
+    hapticsReady = hapticsSupported();
+  }
+
+  function handleNavigate() {
+    if (hapticsReady) trigger('light');
+  }
 
   $: if (browser && !$loading && !$user && $page.url.pathname !== '/login') {
     goto('/login');

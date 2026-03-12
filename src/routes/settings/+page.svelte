@@ -3,18 +3,27 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { getUserSettings, updateReserveMonths, type UserSettings } from '$lib/settings';
+  import { trigger, hapticsSupported } from '$lib/haptics';
+  import { browser } from '$app/environment';
   
   let settings: UserSettings | null = null;
   let saving = false;
   let message = '';
+  let hapticsReady = false;
   
   onMount(() => {
+    if (browser) hapticsReady = hapticsSupported();
+    
     if (!$loading && !$user) {
       goto('/login');
     } else if ($user) {
       loadSettings();
     }
   });
+
+  function haptic(type: 'light' | 'medium' | 'success' | 'error' = 'light') {
+    if (hapticsReady) trigger(type);
+  }
   
   $: if (!$loading && !$user) {
     goto('/login');
@@ -71,7 +80,7 @@
             ← Back
           </a>
           <button
-            on:click={logout}
+            on:click={() => { logout(); haptic('medium'); }}
             style="background: #FF1744; border: 3px solid #FF1744; color: #FFFFFF; font-weight: 900;
                    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer;
                    padding: 8px 14px; flex-shrink: 0; min-height: 44px; margin-top: 2px;"
@@ -116,7 +125,7 @@
           {/if}
           
           <button
-            on:click={handleSave}
+            on:click={() => { handleSave(); haptic('success'); }}
             disabled={saving}
             class="nb-btn nb-btn-black"
             style={saving ? 'opacity: 0.5;' : ''}

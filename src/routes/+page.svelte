@@ -3,6 +3,8 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { getUserTreasuries, createTreasury, type Treasury } from '$lib/treasury';
+  import { trigger, hapticsSupported } from '$lib/haptics';
+  import { browser } from '$app/environment';
 
   let treasuries: Treasury[] = [];
   let showCreate = false;
@@ -12,8 +14,11 @@
   let loadError = '';
   let createError = '';
   let isLoading = true;
+  let hapticsReady = false;
 
   onMount(() => {
+    if (browser) hapticsReady = hapticsSupported();
+    
     const unsubscribe = loading.subscribe((isAuthLoading) => {
       if (!isAuthLoading) {
         if (!$user) {
@@ -25,6 +30,10 @@
       }
     });
   });
+
+  function haptic(type: 'light' | 'medium' | 'success' | 'error' | 'warning' = 'light') {
+    if (hapticsReady) trigger(type);
+  }
 
   $: if (!$loading && !$user) {
     goto('/login');
@@ -94,7 +103,7 @@
             ⚙️
           </a>
           <button
-            on:click={logout}
+            on:click={() => { logout(); haptic('medium'); }}
             style="background: #FFE500; border: 3px solid #FFE500; color: #0A0A0A; font-weight: 900;
                    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer;
                    padding: 8px 14px; flex-shrink: 0; min-height: 44px; margin-top: 2px;
@@ -116,7 +125,7 @@
                     padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
           <p style="color: #fff; font-weight: 700;">{loadError}</p>
           <button
-            on:click={loadTreasuries}
+            on:click={() => { loadTreasuries(); haptic('light'); }}
             style="background: #fff; border: 2px solid #fff; color: #FF1744; font-weight: 900;
                    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em;
                    cursor: pointer; padding: 6px 12px; min-height: 36px;"
@@ -136,7 +145,7 @@
           <p style="color: #444; font-weight: 600; margin-bottom: 28px; font-size: 0.9rem;">
             Create your first treasury to start tracking
           </p>
-          <button on:click={() => { showCreate = true; createError = ''; }} class="nb-btn nb-btn-black">
+          <button on:click={() => { showCreate = true; createError = ''; haptic('light'); }} class="nb-btn nb-btn-black">
             + Create First Treasury
           </button>
         </div>
@@ -151,6 +160,7 @@
               style="display: flex; align-items: center; justify-content: space-between;
                      padding: 22px 24px; text-decoration: none; color: #0A0A0A;
                      transition: transform 0.08s ease, box-shadow 0.08s ease;"
+              on:click={() => haptic('light')}
               on:mouseenter={(e) => {
                 e.currentTarget.style.transform = 'translate(-2px,-2px)';
                 e.currentTarget.style.boxShadow = '8px 8px 0 #0A0A0A';
@@ -184,7 +194,7 @@
 
           {#if !showCreate}
             <button
-              on:click={() => { showCreate = true; createError = ''; }}
+              on:click={() => { showCreate = true; createError = ''; haptic('light'); }}
               style="width: 100%; background: #FAFAF0; border: 3px dashed #0A0A0A; color: #0A0A0A;
                      font-weight: 900; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.07em;
                      cursor: pointer; padding: 20px; min-height: 52px;
@@ -211,7 +221,7 @@
               New Treasury
             </h2>
             <button
-              on:click={() => showCreate = false}
+              on:click={() => { showCreate = false; haptic('light'); }}
               style="background: none; border: none; cursor: pointer; font-size: 1.5rem;
                      font-weight: 900; line-height: 1; padding: 4px 8px; min-height: 44px;"
             >
@@ -250,11 +260,11 @@
             {/if}
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px;">
-              <button on:click={() => { showCreate = false; createError = ''; }} class="nb-btn nb-btn-white">
+              <button on:click={() => { showCreate = false; createError = ''; haptic('light'); }} class="nb-btn nb-btn-white">
                 Cancel
               </button>
               <button
-                on:click={handleCreate}
+                on:click={() => { handleCreate(); haptic('success'); }}
                 disabled={!newName.trim() || creating}
                 class="nb-btn nb-btn-yellow"
               >

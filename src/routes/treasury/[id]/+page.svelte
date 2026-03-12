@@ -19,6 +19,16 @@
   import { DEFAULT_CATEGORIES } from '$lib/types';
   import ReserveWidget from '$lib/components/ReserveWidget.svelte';
   import { calculateAutoReserveTarget } from '$lib/settings';
+  import { trigger, hapticsSupported } from '$lib/haptics';
+  import { browser } from '$app/environment';
+  
+  let hapticsReady = false;
+  
+  $: if (browser) hapticsReady = hapticsSupported();
+  
+  function haptic(type: 'light' | 'medium' | 'heavy' | 'success' | 'error' | 'warning' = 'light') {
+    if (hapticsReady) trigger(type);
+  }
   
   $: treasuryId = $page.params.id as string;
   
@@ -139,6 +149,7 @@
   async function handleDeleteTransaction(id: string) {
     if (confirm('Delete this transaction?')) {
       await deleteTransaction(id);
+      haptic('warning');
       // No manual reload needed — the onSnapshot listener updates automatically
     }
   }
@@ -148,12 +159,14 @@
     await addCategory(treasury.id, newCategoryName.trim());
     await reloadTreasury();
     newCategoryName = '';
+    haptic('success');
   }
 
   async function handleRemoveCategory(category: string) {
     if (!treasury) return;
     await removeCategory(treasury.id, category);
     await reloadTreasury();
+    haptic('warning');
   }
 
   async function handleUpdateReserve() {
@@ -170,6 +183,7 @@
     await reloadTreasury();
     newReserveAmount = '';
     showEditReserve = false;
+    haptic('success');
   }
 
   onDestroy(() => {
@@ -282,7 +296,7 @@
           {treasury.name}
         </h1>
         <button
-          on:click={() => showManageCategories = true}
+          on:click={() => { showManageCategories = true; haptic('light'); }}
           style="color: #FFE500; background: none; border: none; cursor: pointer; font-size: 1.2rem;
                  min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center;"
           title="Manage Categories"
@@ -329,14 +343,14 @@
       <!-- ── Action buttons ─────────────────────────── -->
       <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-bottom: 24px;">
         <button
-          on:click={() => showAddTransaction = true}
+          on:click={() => { showAddTransaction = true; haptic('light'); }}
           class="nb-btn nb-btn-black"
           style="font-size: 1rem; padding: 18px 24px;"
         >
           + Add Transaction
         </button>
         <button
-          on:click={exportCSV}
+          on:click={() => { exportCSV(); haptic('light'); }}
           disabled={transactions.length === 0}
           class="nb-btn nb-btn-white"
           style="font-size: 0.8rem; padding: 18px 18px; white-space: nowrap;"
@@ -352,6 +366,7 @@
           {treasury} 
           currentBalance={balance}
           onEdit={() => {
+            haptic('light');
             reserveMode = treasury?.prudentReserveMode ?? 'manual';
             reserveMonths = treasury?.prudentReserveMonths ?? 3;
             newReserveAmount = treasury?.prudentReserve ? String(treasury.prudentReserve) : '';
@@ -398,7 +413,7 @@
                     padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
           <p style="color: #fff; font-weight: 700; font-size: 0.9rem;">{listenerError}</p>
           <button
-            on:click={loadData}
+            on:click={() => { loadData(); haptic('light'); }}
             style="background: #fff; border: 2px solid #fff; color: #FF1744; font-weight: 900;
                    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em;
                    cursor: pointer; padding: 6px 12px; min-height: 36px; flex-shrink: 0;"
@@ -453,7 +468,7 @@
                   {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                 </span>
                 <button
-                  on:click={() => handleDeleteTransaction(transaction.id)}
+                  on:click={() => { haptic('light'); handleDeleteTransaction(transaction.id); }}
                   style="background: none; border: 2px solid transparent; cursor: pointer;
                          color: #bbb; font-size: 1rem; padding: 4px 6px; min-height: 36px;
                          transition: color 0.1s ease, border-color 0.1s ease;"
@@ -485,7 +500,7 @@
           <div class="nb-strip" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 20px;">
             <span>Add Transaction</span>
             <button
-              on:click={() => showAddTransaction = false}
+              on:click={() => { showAddTransaction = false; haptic('light'); }}
               style="background: none; border: none; color: #FFE500; font-size: 1.4rem;
                      font-weight: 900; cursor: pointer; line-height: 1; min-height: 36px; padding: 0 4px;"
             >×</button>
@@ -496,7 +511,7 @@
             <!-- Type toggle -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 3px solid #0A0A0A;">
               <button
-                on:click={() => { newType = 'income'; newCategory = ''; }}
+                on:click={() => { newType = 'income'; newCategory = ''; haptic('light'); }}
                 style="padding: 14px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase;
                        letter-spacing: 0.07em; cursor: pointer; transition: background 0.1s ease;
                        background: {newType === 'income' ? '#00C853' : '#FFFFFF'};
@@ -505,7 +520,7 @@
                 ▲ Income
               </button>
               <button
-                on:click={() => { newType = 'expense'; newCategory = ''; }}
+                on:click={() => { newType = 'expense'; newCategory = ''; haptic('light'); }}
                 style="padding: 14px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase;
                        letter-spacing: 0.07em; cursor: pointer; transition: background 0.1s ease;
                        background: {newType === 'expense' ? '#FF1744' : '#FFFFFF'};
@@ -570,7 +585,7 @@
             </div>
 
             <button
-              on:click={handleAddTransaction}
+              on:click={() => { handleAddTransaction(); haptic('success'); }}
               disabled={!newAmount || !newCategory || submitting}
               class="nb-btn"
               style="background: {newType === 'income' ? '#00C853' : '#FF1744'};
@@ -597,7 +612,7 @@
           <div class="nb-strip" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 20px;">
             <span>Manage Categories</span>
             <button
-              on:click={() => showManageCategories = false}
+              on:click={() => { showManageCategories = false; haptic('light'); }}
               style="background: none; border: none; color: #FFE500; font-size: 1.4rem;
                      font-weight: 900; cursor: pointer; line-height: 1; min-height: 36px; padding: 0 4px;"
             >×</button>
@@ -612,14 +627,14 @@
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0;
                            border: 3px solid #0A0A0A; margin-bottom: 12px;">
                 <button
-                  on:click={() => categoryType = 'income'}
+                  on:click={() => { categoryType = 'income'; haptic('light'); }}
                   style="padding: 10px; font-weight: 900; font-size: 0.78rem; text-transform: uppercase;
                          letter-spacing: 0.06em; cursor: pointer; border: none; border-right: 2px solid #0A0A0A;
                          background: {categoryType === 'income' ? '#00C853' : '#fff'};
                          color: #0A0A0A; min-height: 44px;"
                 >Income</button>
                 <button
-                  on:click={() => categoryType = 'expense'}
+                  on:click={() => { categoryType = 'expense'; haptic('light'); }}
                   style="padding: 10px; font-weight: 900; font-size: 0.78rem; text-transform: uppercase;
                          letter-spacing: 0.06em; cursor: pointer; border: none;
                          background: {categoryType === 'expense' ? '#FF1744' : '#fff'};
@@ -636,7 +651,7 @@
                   style="flex: 1;"
                 />
                 <button
-                  on:click={handleAddCategory}
+                  on:click={() => { handleAddCategory(); haptic('success'); }}
                   disabled={!newCategoryName.trim()}
                   class="nb-btn nb-btn-black nb-btn-sm"
                   style="width: auto; flex-shrink: 0; padding: 0 20px;"
@@ -654,7 +669,7 @@
                                  border: 2px solid #0A0A0A; padding: 10px 14px;">
                       <span style="font-weight: 700; font-size: 0.9rem;">{category}</span>
                       <button
-                        on:click={() => handleRemoveCategory(category)}
+                        on:click={() => { haptic('light'); handleRemoveCategory(category); }}
                         style="background: none; border: none; cursor: pointer; color: #FF1744;
                                font-weight: 900; font-size: 0.72rem; text-transform: uppercase;
                                letter-spacing: 0.06em; text-decoration: underline; min-height: 36px;"
@@ -706,7 +721,7 @@
           <div class="nb-strip" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 20px;">
             <span>Set Prudent Reserve</span>
             <button
-              on:click={() => showEditReserve = false}
+              on:click={() => { showEditReserve = false; haptic('light'); }}
               style="background: none; border: none; color: #FFE500; font-size: 1.4rem;
                      font-weight: 900; cursor: pointer; line-height: 1; min-height: 36px; padding: 0 4px;"
             >×</button>
@@ -717,14 +732,14 @@
             <!-- Mode toggle -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 3px solid #0A0A0A;">
               <button
-                on:click={() => reserveMode = 'auto'}
+                on:click={() => { reserveMode = 'auto'; haptic('light'); }}
                 style="padding: 13px; font-weight: 900; font-size: 0.8rem; text-transform: uppercase;
                        letter-spacing: 0.06em; cursor: pointer; border: none; border-right: 2px solid #0A0A0A;
                        background: {reserveMode === 'auto' ? '#FFE500' : '#FFFFFF'};
                        color: #0A0A0A; min-height: 50px;"
               >⚡ Auto-Calculate</button>
               <button
-                on:click={() => reserveMode = 'manual'}
+                on:click={() => { reserveMode = 'manual'; haptic('light'); }}
                 style="padding: 13px; font-weight: 900; font-size: 0.8rem; text-transform: uppercase;
                        letter-spacing: 0.06em; cursor: pointer; border: none;
                        background: {reserveMode === 'manual' ? '#0A0A0A' : '#FFFFFF'};
@@ -802,11 +817,11 @@
 
             <!-- Actions -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px;">
-              <button on:click={() => showEditReserve = false} class="nb-btn nb-btn-white">
+              <button on:click={() => { showEditReserve = false; haptic('light'); }} class="nb-btn nb-btn-white">
                 Cancel
               </button>
               <button
-                on:click={handleUpdateReserve}
+                on:click={() => { handleUpdateReserve(); haptic('success'); }}
                 disabled={reserveMode === 'auto' ? !autoReserveCalc.hasEnoughData : !newReserveAmount}
                 class="nb-btn nb-btn-yellow"
               >

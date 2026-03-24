@@ -116,6 +116,105 @@ export async function deleteTransaction(transactionId: string, receiptPath?: str
   await deleteDoc(doc(db, 'transactions', transactionId));
 }
 
+export async function updateTransaction(
+  userId: string,
+  transactionId: string,
+  data: Partial<Omit<Transaction, 'id' | 'userId' | 'treasuryId' | 'createdAt' | 'receiptUrl' | 'receiptPath'>>,
+  receiptFile?: File | null,
+  deleteExistingReceipt?: boolean
+): Promise<void> {
+  const ref = doc(db, 'transactions', transactionId);
+  
+  // Handle receipt updates
+  let receiptUrl: string | null | undefined = undefined;
+  let receiptPath: string | null | undefined = undefined;
+  
+  if (receiptFile) {
+    // Upload new receipt
+    const uploadResult = await uploadReceipt(userId, transactionId, receiptFile);
+    receiptUrl = uploadResult.url;
+    receiptPath = uploadResult.path;
+  } else if (deleteExistingReceipt) {
+    // Mark for deletion - caller should pass the existing path
+    receiptUrl = null;
+    receiptPath = null;
+  }
+  // If neither, keep existing (undefined means don't update these fields)
+  
+  // Build update object with only provided fields
+  const updateData: Record<string, any> = {};
+  
+  if (data.amount !== undefined) updateData.amount = data.amount;
+  if (data.type !== undefined) updateData.type = data.type;
+  if (data.category !== undefined) updateData.category = data.category;
+  if (data.note !== undefined) updateData.note = data.note;
+  if (data.date !== undefined) updateData.date = data.date;
+  
+  // Only include receipt fields if we're changing them
+  if (receiptUrl !== undefined) updateData.receiptUrl = receiptUrl;
+  if (receiptPath !== undefined) updateData.receiptPath = receiptPath;
+  
+  // If deleting an existing receipt, we need to delete from storage too
+  // But we don't have the old path here - the caller should handle that
+  // Actually, let's accept the old path as an optional parameter
+  await updateDoc(ref, updateData);
+}
+
+export async function updateTransactionWithReceipt(
+  userId: string,
+  transactionId: string,
+  existingReceiptPath: string | null,
+  data: Partial<Omit<Transaction, 'id' | 'userId' | 'treasuryId' | 'createdAt' | 'receiptUrl' | 'receiptPath'>>,
+  receiptFile?: File | null,
+  deleteExistingReceipt?: boolean
+): Promise<void> {
+  const ref = doc(db, 'transactions', transactionId);
+  
+  // Handle receipt updates
+  let receiptUrl: string | null | undefined = undefined;
+  let receiptPath: string | null | undefined = undefined;
+  
+  if (receiptFile) {
+    // Delete old receipt if exists
+    if (existingReceiptPath) {
+      try {
+        await deleteReceipt(existingReceiptPath);
+      } catch (err) {
+        console.error('Failed to delete old receipt from storage:', err);
+      }
+    }
+    // Upload new receipt
+    const uploadResult = await uploadReceipt(userId, transactionId, receiptFile);
+    receiptUrl = uploadResult.url;
+    receiptPath = uploadResult.path;
+  } else if (deleteExistingReceipt && existingReceiptPath) {
+    // Delete existing receipt from storage
+    try {
+      await deleteReceipt(existingReceiptPath);
+    } catch (err) {
+      console.error('Failed to delete receipt from storage:', err);
+    }
+    receiptUrl = null;
+    receiptPath = null;
+  }
+  // If neither, keep existing (undefined means don't update these fields)
+  
+  // Build update object with only provided fields
+  const updateData: Record<string, any> = {};
+  
+  if (data.amount !== undefined) updateData.amount = data.amount;
+  if (data.type !== undefined) updateData.type = data.type;
+  if (data.category !== undefined) updateData.category = data.category;
+  if (data.note !== undefined) updateData.note = data.note;
+  if (data.date !== undefined) updateData.date = data.date;
+  
+  // Only include receipt fields if we're changing them
+  if (receiptUrl !== undefined) updateData.receiptUrl = receiptUrl;
+  if (receiptPath !== undefined) updateData.receiptPath = receiptPath;
+  
+  await updateDoc(ref, updateData);
+}
+
 export async function getTreasuryTransactions(userId: string, treasuryId: string): Promise<Transaction[]> {
   const q = query(
     transactionsCollection,

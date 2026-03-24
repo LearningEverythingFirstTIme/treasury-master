@@ -8,6 +8,7 @@
     subscribeTreasuryTransactions,
     addTransaction,
     deleteTransaction,
+    updateTransactionWithReceipt,
     calculateBalance,
     getCategoryBreakdown,
     addCategory,
@@ -39,6 +40,17 @@
   let showAddTransaction = false;
   let showManageCategories = false;
   let showEditReserve = false;
+  let showEditTransaction = false;
+  let editingTransaction: Transaction | null = null;
+
+  let editAmount = '';
+  let editType: 'income' | 'expense' = 'income';
+  let editCategory = '';
+  let editNote = '';
+  let editDate = new Date().toISOString().split('T')[0];
+  let editReceiptFile: File | null = null;
+  let editReceiptPreview: string | null = null;
+  let editReceiptAction: 'keep' | 'replace' | 'remove' = 'keep';
 
   let unsubscribeTransactions: (() => void) | null = null;
   let listenerError = '';
@@ -187,6 +199,88 @@
   function clearReceiptFile() {
     newReceiptFile = null;
     newReceiptPreview = null;
+  }
+
+  function openEditModal(transaction: Transaction) {
+    editingTransaction = transaction;
+    editAmount = String(transaction.amount);
+    editType = transaction.type;
+    editCategory = transaction.category;
+    editNote = transaction.note || '';
+    editDate = transaction.date.toISOString().split('T')[0];
+    editReceiptFile = null;
+    editReceiptPreview = transaction.receiptUrl || null;
+    editReceiptAction = 'keep';
+    showEditTransaction = true;
+    haptic('light');
+  }
+
+  function handleEditReceiptFileSelect(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) {
+      if (!file.type.match(/^image\/(jpeg|png)$/)) {
+        alert('Only JPEG and PNG images are allowed');
+        input.value = '';
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        alert('Image must be less than 10MB');
+        input.value = '';
+        return;
+      }
+      editReceiptFile = file;
+      editReceiptAction = 'replace';
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        editReceiptPreview = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function clearEditReceiptFile() {
+    editReceiptFile = null;
+    if (editingTransaction?.receiptUrl) {
+      editReceiptPreview = editingTransaction.receiptUrl;
+      editReceiptAction = 'keep';
+    } else {
+      editReceiptPreview = null;
+      editReceiptAction = 'keep';
+    }
+  }
+
+  function removeEditReceipt() {
+    editReceiptFile = null;
+    editReceiptPreview = null;
+    editReceiptAction = 'remove';
+  }
+
+  async function handleEditTransaction() {
+    if (!$user || !editingTransaction || !editAmount || !editCategory || submitting) return;
+    submitting = true;
+    try {
+      await updateTransactionWithReceipt(
+        $user.uid,
+        editingTransaction.id,
+        editingTransaction.receiptPath,
+        {
+          amount: parseFloat(editAmount),
+          type: editType,
+          category: editCategory,
+          note: editNote,
+          date: new Date(editDate + 'T00:00:00')
+        },
+        editReceiptAction === 'replace' ? editReceiptFile : null,
+        editReceiptAction === 'remove'
+      );
+      // No manual reload needed — the onSnapshot listener updates transactions automatically
+      showEditTransaction = false;
+      editingTransaction = null;
+    } finally {
+      submitting = false;
+    }
   }
 
   function openLightbox(url: string) {
@@ -530,6 +624,15 @@
                   {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                 </span>
                 <button
+                  on:click={() => { haptic('light'); openEditModal(transaction); }}
+                  style="background: none; border: 2px solid transparent; cursor: pointer;
+                         color: #bbb; font-size: 1rem; padding: 4px 6px; min-height: 36px;
+                         transition: color 0.1s ease, border-color 0.1s ease;"
+                  on:mouseenter={(e) => { e.currentTarget.style.color = '#0A0A0A'; e.currentTarget.style.borderColor = '#0A0A0A'; }}
+                  on:mouseleave={(e) => { e.currentTarget.style.color = '#bbb'; e.currentTarget.style.borderColor = 'transparent'; }}
+                  title="Edit"
+                >✏</button>
+                <button
                   on:click={() => { haptic('light'); handleDeleteTransaction(transaction.id, transaction.receiptPath); }}
                   style="background: none; border: 2px solid transparent; cursor: pointer;
                          color: #bbb; font-size: 1rem; padding: 4px 6px; min-height: 36px;
@@ -695,6 +798,237 @@
                      font-size: 1rem; {submitting ? 'opacity: 0.6;' : ''}"
             >
               {submitting ? 'Saving...' : 'Save Transaction ✓'}
+            </button>
+
+          </div>
+        </div>
+      </div>
+    {/if}
+
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!--  Edit Transaction Modal                        -->
+    <!-- ══════════════════════════════════════════════ -->
+    {#if showEditTransaction && editingTransaction}
+      <div style="position: fixed; inset: 0; background: rgba(10,10,10,0.75); display: flex;
+                  align-items: flex-end; justify-content: center; z-index: 50;">
+        <div
+          class="nb-card"
+          style="width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto;
+                 box-shadow: 0 -6px 0 #0A0A0A; border-bottom: none;"
+        >
+          <!-- Modal header strip -->
+          <div class="nb-strip" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 20px;">
+            <span>Edit Transaction</span>
+            <button
+              on:click={() => { showEditTransaction = false; editingTransaction = null; editReceiptFile = null; editReceiptPreview = null; haptic('light'); }}
+              style="background: none; border: none; color: #FFE500; font-size: 1.4rem;
+                     font-weight: 900; cursor: pointer; line-height: 1; min-height: 36px; padding: 0 4px;"
+            >×</button>
+          </div>
+
+          <div style="padding: 24px 20px; display: flex; flex-direction: column; gap: 18px;">
+
+            <!-- Type toggle -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 3px solid #0A0A0A;">
+              <button
+                on:click={() => { editType = 'income'; editCategory = ''; haptic('light'); }}
+                style="padding: 14px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase;
+                       letter-spacing: 0.07em; cursor: pointer; transition: background 0.1s ease;
+                       background: {editType === 'income' ? '#00C853' : '#FFFFFF'};
+                       color: #0A0A0A; border: none; border-right: 2px solid #0A0A0A; min-height: 52px;"
+              >
+                ▲ Income
+              </button>
+              <button
+                on:click={() => { editType = 'expense'; editCategory = ''; haptic('light'); }}
+                style="padding: 14px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase;
+                       letter-spacing: 0.07em; cursor: pointer; transition: background 0.1s ease;
+                       background: {editType === 'expense' ? '#FF1744' : '#FFFFFF'};
+                       color: {editType === 'expense' ? '#fff' : '#0A0A0A'}; border: none; min-height: 52px;"
+              >
+                ▼ Expense
+              </button>
+            </div>
+
+            <!-- Amount -->
+            <div>
+              <label for="edit-amount" class="nb-label">Amount *</label>
+              <div style="position: relative;">
+                <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+                              font-weight: 900; font-size: 1.1rem; color: #0A0A0A; pointer-events: none;">$</span>
+                <input
+                  id="edit-amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  bind:value={editAmount}
+                  placeholder="0.00"
+                  class="nb-input"
+                  style="padding-left: 34px; font-size: 1.1rem;"
+                />
+              </div>
+            </div>
+
+            <!-- Category -->
+            <div>
+              <label for="edit-category" class="nb-label">Category *</label>
+              <select id="edit-category" bind:value={editCategory} class="nb-select">
+                <option value="">Select category...</option>
+                {#if editType === 'income'}
+                  {#each incomeCategories as cat}
+                    <option value={cat}>{cat}</option>
+                  {/each}
+                {:else}
+                  {#each expenseCategories as cat}
+                    <option value={cat}>{cat}</option>
+                  {/each}
+                {/if}
+              </select>
+            </div>
+
+            <!-- Date -->
+            <div>
+              <label for="edit-date" class="nb-label">Date</label>
+              <input id="edit-date" type="date" bind:value={editDate} class="nb-input" />
+            </div>
+
+            <!-- Note -->
+            <div>
+              <label for="edit-note" class="nb-label">Note (optional)</label>
+              <input
+                id="edit-note"
+                type="text"
+                bind:value={editNote}
+                placeholder="Description..."
+                class="nb-input"
+              />
+            </div>
+
+            <!-- Receipt Photo -->
+            <div>
+              <label class="nb-label">Receipt Photo</label>
+              
+              {#if editingTransaction.receiptUrl && editReceiptAction === 'keep'}
+                <!-- Show existing receipt with options -->
+                <div style="border: 3px solid #0A0A0A; padding: 12px; background: #F5F5F0; margin-bottom: 10px;">
+                  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                    <img 
+                      src={editingTransaction.receiptUrl} 
+                      alt="Current receipt"
+                      style="width: 60px; height: 60px; object-fit: cover; border: 2px solid #0A0A0A;"
+                    />
+                    <span style="font-size: 0.85rem; font-weight: 600; color: #555;">Current receipt</span>
+                  </div>
+                  <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button
+                      type="button"
+                      on:click={removeEditReceipt}
+                      style="background: #FF1744; color: #fff; border: 2px solid #0A0A0A;
+                             padding: 8px 14px; font-weight: 900; font-size: 0.75rem;
+                             text-transform: uppercase; cursor: pointer;"
+                    >Remove Receipt</button>
+                    <label 
+                      for="edit-receipt-replace"
+                      style="background: #FFE500; color: #0A0A0A; border: 2px solid #0A0A0A;
+                             padding: 8px 14px; font-weight: 900; font-size: 0.75rem;
+                             text-transform: uppercase; cursor: pointer;"
+                    >Replace Receipt</label>
+                    <input
+                      id="edit-receipt-replace"
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      capture="environment"
+                      on:change={handleEditReceiptFileSelect}
+                      style="display: none;"
+                    />
+                  </div>
+                </div>
+              {:else if editReceiptAction === 'replace' && editReceiptPreview}
+                <!-- Show new receipt preview -->
+                <div style="position: relative; border: 3px solid #0A0A0A; padding: 8px; background: #F5F5F0; margin-bottom: 10px;">
+                  <div style="font-size: 0.75rem; font-weight: 700; color: #00C853; margin-bottom: 8px; text-transform: uppercase;">
+                    New Receipt
+                  </div>
+                  <img 
+                    src={editReceiptPreview} 
+                    alt="New receipt preview"
+                    style="max-width: 100%; max-height: 150px; display: block; margin: 0 auto;"
+                  />
+                  <button
+                    type="button"
+                    on:click={clearEditReceiptFile}
+                    style="position: absolute; top: -10px; right: -10px; background: #FF1744; color: #fff;
+                           border: 2px solid #0A0A0A; width: 28px; height: 28px; font-weight: 900;
+                           cursor: pointer; display: flex; align-items: center; justify-content: center;
+                           font-size: 1rem; line-height: 1;"
+                  >×</button>
+                </div>
+              {:else if editReceiptAction === 'remove'}
+                <!-- Show "removed" state with option to restore -->
+                <div style="border: 3px solid #0A0A0A; padding: 12px; background: #FFF0F0; margin-bottom: 10px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 0.85rem; font-weight: 600; color: #FF1744;">
+                      Receipt will be removed
+                    </span>
+                    <button
+                      type="button"
+                      on:click={() => { editReceiptAction = 'keep'; editReceiptPreview = editingTransaction.receiptUrl; }}
+                      style="background: #FAFAF0; color: #0A0A0A; border: 2px solid #0A0A0A;
+                             padding: 6px 12px; font-weight: 900; font-size: 0.72rem;
+                             text-transform: uppercase; cursor: pointer;"
+                    >Keep Receipt</button>
+                  </div>
+                </div>
+              {:else}
+                <!-- No existing receipt - show upload option -->
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                  <label 
+                    for="edit-receipt-new"
+                    class="nb-input"
+                    style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: #666; min-height: 52px;"
+                  >
+                    <span style="font-size: 1.2rem;">📷</span>
+                    <span>{editReceiptFile ? editReceiptFile.name : 'Choose image (JPEG/PNG)'}</span>
+                  </label>
+                  <input
+                    id="edit-receipt-new"
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    capture="environment"
+                    on:change={handleEditReceiptFileSelect}
+                    style="display: none;"
+                  />
+                  {#if editReceiptPreview}
+                    <div style="position: relative; border: 3px solid #0A0A0A; padding: 8px; background: #F5F5F0;">
+                      <img 
+                        src={editReceiptPreview} 
+                        alt="Receipt preview"
+                        style="max-width: 100%; max-height: 150px; display: block; margin: 0 auto;"
+                      />
+                      <button
+                        type="button"
+                        on:click={clearEditReceiptFile}
+                        style="position: absolute; top: -10px; right: -10px; background: #FF1744; color: #fff;
+                               border: 2px solid #0A0A0A; width: 28px; height: 28px; font-weight: 900;
+                               cursor: pointer; display: flex; align-items: center; justify-content: center;
+                               font-size: 1rem; line-height: 1;"
+                      >×</button>
+                    </div>
+                  {/if}
+                </div>
+              {/if}
+            </div>
+
+            <button
+              on:click={() => { handleEditTransaction(); haptic('success'); }}
+              disabled={!editAmount || !editCategory || submitting}
+              class="nb-btn"
+              style="background: {editType === 'income' ? '#00C853' : '#FF1744'};
+                     color: {editType === 'income' ? '#0A0A0A' : '#fff'};
+                     font-size: 1rem; {submitting ? 'opacity: 0.6;' : ''}"
+            >
+              {submitting ? 'Saving...' : 'Save Changes ✓'}
             </button>
 
           </div>

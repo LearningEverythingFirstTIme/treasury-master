@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getStorage, type FirebaseStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { browser } from '$app/environment';
 
 const firebaseConfig = {
@@ -15,6 +16,7 @@ const firebaseConfig = {
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
+let storage: FirebaseStorage;
 
 // Only initialize Firebase in the browser
 if (browser) {
@@ -24,6 +26,7 @@ if (browser) {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app);
   } else {
     console.error('Missing Firebase configuration');
   }
@@ -34,6 +37,7 @@ if (browser) {
   };
   auth = { onAuthStateChanged: throwServerError } as unknown as Auth;
   db = { collection: throwServerError } as unknown as Firestore;
+  storage = { ref: throwServerError } as unknown as FirebaseStorage;
 }
 
-export { auth, db };
+export { auth, db, storage, ref, uploadBytes, getDownloadURL, deleteObject };

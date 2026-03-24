@@ -8,6 +8,8 @@ export interface Transaction {
   note: string;
   date: Date;
   createdAt: Date;
+  receiptUrl?: string | null;
+  receiptPath?: string | null;
 }
 
 export interface Treasury {

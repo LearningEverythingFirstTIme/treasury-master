@@ -48,8 +48,12 @@
   let newCategory = '';
   let newNote = '';
   let newDate = new Date().toISOString().split('T')[0];
+  let newReceiptFile: File | null = null;
+  let newReceiptPreview: string | null = null;
 
   let submitting = false;
+  
+  let lightboxImageUrl: string | null = null;
 
   let newCategoryName = '';
   let categoryType: 'income' | 'expense' = 'income';
@@ -135,23 +139,72 @@
         category: newCategory,
         note: newNote,
         date: new Date(newDate + 'T00:00:00')
-      });
+      }, newReceiptFile);
       // No manual reload needed — the onSnapshot listener updates transactions automatically
       newAmount = '';
       newNote = '';
       newDate = new Date().toISOString().split('T')[0];
+      newReceiptFile = null;
+      newReceiptPreview = null;
       showAddTransaction = false;
     } finally {
       submitting = false;
     }
   }
 
-  async function handleDeleteTransaction(id: string) {
+  async function handleDeleteTransaction(id: string, receiptPath?: string | null) {
     if (confirm('Delete this transaction?')) {
-      await deleteTransaction(id);
+      await deleteTransaction(id, receiptPath);
       haptic('warning');
       // No manual reload needed — the onSnapshot listener updates automatically
     }
+  }
+
+  function handleReceiptFileSelect(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) {
+      if (!file.type.match(/^image\/(jpeg|png)$/)) {
+        alert('Only JPEG and PNG images are allowed');
+        input.value = '';
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        alert('Image must be less than 10MB');
+        input.value = '';
+        return;
+      }
+      newReceiptFile = file;
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        newReceiptPreview = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function clearReceiptFile() {
+    newReceiptFile = null;
+    newReceiptPreview = null;
+  }
+
+  function openLightbox(url: string) {
+    lightboxImageUrl = url;
+  }
+
+  function closeLightbox() {
+    lightboxImageUrl = null;
+  }
+
+  function downloadReceipt(url: string) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'receipt.jpg';
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
   async function handleAddCategory() {
@@ -463,12 +516,21 @@
               </div>
 
               <div style="display: flex; align-items: center; gap: 10px; margin-left: 12px; flex-shrink: 0;">
+                {#if transaction.receiptUrl}
+                  <button
+                    on:click={() => { haptic('light'); openLightbox(transaction.receiptUrl!); }}
+                    style="background: #FFE500; border: 2px solid #0A0A0A; cursor: pointer;
+                           color: #0A0A0A; font-size: 1rem; padding: 4px 8px; min-height: 36px;
+                           display: flex; align-items: center; justify-content: center;"
+                    title="View receipt"
+                  >📎</button>
+                {/if}
                 <span style="font-weight: 900; font-size: 1.05rem;
                               color: {transaction.type === 'income' ? '#00C853' : '#FF1744'};">
                   {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                 </span>
                 <button
-                  on:click={() => { haptic('light'); handleDeleteTransaction(transaction.id); }}
+                  on:click={() => { haptic('light'); handleDeleteTransaction(transaction.id, transaction.receiptPath); }}
                   style="background: none; border: 2px solid transparent; cursor: pointer;
                          color: #bbb; font-size: 1rem; padding: 4px 6px; min-height: 36px;
                          transition: color 0.1s ease, border-color 0.1s ease;"
@@ -500,7 +562,7 @@
           <div class="nb-strip" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 20px;">
             <span>Add Transaction</span>
             <button
-              on:click={() => { showAddTransaction = false; haptic('light'); }}
+              on:click={() => { showAddTransaction = false; newReceiptFile = null; newReceiptPreview = null; haptic('light'); }}
               style="background: none; border: none; color: #FFE500; font-size: 1.4rem;
                      font-weight: 900; cursor: pointer; line-height: 1; min-height: 36px; padding: 0 4px;"
             >×</button>
@@ -582,6 +644,46 @@
                 placeholder="Description..."
                 class="nb-input"
               />
+            </div>
+
+            <!-- Receipt Photo -->
+            <div>
+              <label for="receipt" class="nb-label">Receipt Photo (optional)</label>
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <label 
+                  for="receipt"
+                  class="nb-input"
+                  style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: #666; min-height: 52px;"
+                >
+                  <span style="font-size: 1.2rem;">📷</span>
+                  <span>{newReceiptFile ? newReceiptFile.name : 'Choose image (JPEG/PNG)'}</span>
+                </label>
+                <input
+                  id="receipt"
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  capture="environment"
+                  on:change={handleReceiptFileSelect}
+                  style="display: none;"
+                />
+                {#if newReceiptPreview}
+                  <div style="position: relative; border: 3px solid #0A0A0A; padding: 8px; background: #F5F5F0;">
+                    <img 
+                      src={newReceiptPreview} 
+                      alt="Receipt preview"
+                      style="max-width: 100%; max-height: 150px; display: block; margin: 0 auto;"
+                    />
+                    <button
+                      type="button"
+                      on:click={clearReceiptFile}
+                      style="position: absolute; top: -10px; right: -10px; background: #FF1744; color: #fff;
+                             border: 2px solid #0A0A0A; width: 28px; height: 28px; font-weight: 900;
+                             cursor: pointer; display: flex; align-items: center; justify-content: center;
+                             font-size: 1rem; line-height: 1;"
+                    >×</button>
+                  </div>
+                {/if}
+              </div>
             </div>
 
             <button
@@ -831,6 +933,45 @@
 
           </div>
         </div>
+      </div>
+    {/if}
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!--  Receipt Lightbox Modal                        -->
+    <!-- ══════════════════════════════════════════════ -->
+    {#if lightboxImageUrl}
+      <div 
+        style="position: fixed; inset: 0; background: rgba(10,10,10,0.9); display: flex;
+                    align-items: center; justify-content: center; z-index: 60; padding: 20px;"
+        on:click={closeLightbox}
+        on:keydown={(e) => e.key === 'Escape' && closeLightbox()}
+        role="button"
+        tabindex="0"
+      >
+        <!-- Close button -->
+        <button
+          on:click={closeLightbox}
+          style="position: absolute; top: 20px; right: 20px; background: #FF1744; color: #fff;
+                     border: 3px solid #0A0A0A; width: 44px; height: 44px; font-weight: 900;
+                     cursor: pointer; font-size: 1.5rem; line-height: 1; z-index: 61;"
+        >×</button>
+
+        <!-- Download button -->
+        <button
+          on:click={() => downloadReceipt(lightboxImageUrl!)}
+          style="position: absolute; top: 20px; right: 76px; background: #FFE500; color: #0A0A0A;
+                     border: 3px solid #0A0A0A; padding: 10px 16px; font-weight: 900;
+                     cursor: pointer; font-size: 0.8rem; text-transform: uppercase; 
+                     letter-spacing: 0.06em; z-index: 61;"
+        >↓ Download</button>
+
+        <!-- Receipt image -->
+        <img
+          src={lightboxImageUrl}
+          alt="Receipt"
+          style="max-width: 90vw; max-height: 90vh; object-fit: contain; border: 3px solid #0A0A0A;"
+          on:click|stopPropagation
+        />
       </div>
     {/if}
 

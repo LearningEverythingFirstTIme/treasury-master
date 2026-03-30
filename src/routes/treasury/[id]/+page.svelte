@@ -753,16 +753,41 @@
             <div>
               <label for="receipt" class="nb-label">Receipt Photo (optional)</label>
               <div style="display: flex; flex-direction: column; gap: 10px;">
-                <label 
-                  for="receipt"
-                  class="nb-input"
-                  style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: #666; min-height: 52px;"
-                >
-                  <span style="font-size: 1.2rem;">📷</span>
-                  <span>{newReceiptFile ? newReceiptFile.name : 'Choose image (JPEG/PNG)'}</span>
-                </label>
+                {#if newReceiptFile}
+                  <div class="nb-input" style="display: flex; align-items: center; gap: 8px; color: #00C853; min-height: 52px;">
+                    <span style="font-size: 1.2rem;">✅</span>
+                    <span>{newReceiptFile.name}</span>
+                  </div>
+                {:else}
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <label 
+                      for="receipt-camera"
+                      class="nb-input"
+                      style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: #666; min-height: 52px;"
+                    >
+                      <span style="font-size: 1.2rem;">📷</span>
+                      <span>Take Photo</span>
+                    </label>
+                    <label 
+                      for="receipt-file"
+                      class="nb-input"
+                      style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: #666; min-height: 52px;"
+                    >
+                      <span style="font-size: 1.2rem;">🗂️</span>
+                      <span>Choose File</span>
+                    </label>
+                  </div>
+                {/if}
                 <input
-                  id="receipt"
+                  id="receipt-camera"
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  capture="environment"
+                  on:change={handleReceiptFileSelect}
+                  style="display: none;"
+                />
+                <input
+                  id="receipt-file"
                   type="file"
                   accept="image/jpeg,image/png"
                   on:change={handleReceiptFileSelect}
@@ -932,9 +957,23 @@
                       style="background: #FFE500; color: #0A0A0A; border: 2px solid #0A0A0A;
                              padding: 8px 14px; font-weight: 900; font-size: 0.75rem;
                              text-transform: uppercase; cursor: pointer;"
-                    >Replace Receipt</label>
+                    >📷 Replace</label>
                     <input
                       id="edit-receipt-replace"
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      capture="environment"
+                      on:change={handleEditReceiptFileSelect}
+                      style="display: none;"
+                    />
+                    <label 
+                      for="edit-receipt-replace-file"
+                      style="background: #FFF; color: #0A0A0A; border: 2px solid #0A0A0A;
+                             padding: 8px 14px; font-weight: 900; font-size: 0.75rem;
+                             text-transform: uppercase; cursor: pointer;"
+                    >🗂️ From File</label>
+                    <input
+                      id="edit-receipt-replace-file"
                       type="file"
                       accept="image/jpeg,image/png"
                       on:change={handleEditReceiptFileSelect}
@@ -981,16 +1020,41 @@
               {:else}
                 <!-- No existing receipt - show upload option -->
                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                  <label 
-                    for="edit-receipt-new"
-                    class="nb-input"
-                    style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: #666; min-height: 52px;"
-                  >
-                    <span style="font-size: 1.2rem;">📷</span>
-                    <span>{editReceiptFile ? editReceiptFile.name : 'Choose image (JPEG/PNG)'}</span>
-                  </label>
+                  {#if editReceiptFile}
+                    <div class="nb-input" style="display: flex; align-items: center; gap: 8px; color: #00C853; min-height: 52px;">
+                      <span style="font-size: 1.2rem;">✅</span>
+                      <span>{editReceiptFile.name}</span>
+                    </div>
+                  {:else}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                      <label 
+                        for="edit-receipt-new"
+                        class="nb-input"
+                        style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: #666; min-height: 52px;"
+                      >
+                        <span style="font-size: 1.2rem;">📷</span>
+                        <span>Take Photo</span>
+                      </label>
+                      <label 
+                        for="edit-receipt-new-file"
+                        class="nb-input"
+                        style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; color: #666; min-height: 52px;"
+                      >
+                        <span style="font-size: 1.2rem;">🗂️</span>
+                        <span>Choose File</span>
+                      </label>
+                    </div>
+                  {/if}
                   <input
                     id="edit-receipt-new"
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    capture="environment"
+                    on:change={handleEditReceiptFileSelect}
+                    style="display: none;"
+                  />
+                  <input
+                    id="edit-receipt-new-file"
                     type="file"
                     accept="image/jpeg,image/png"
                     on:change={handleEditReceiptFileSelect}

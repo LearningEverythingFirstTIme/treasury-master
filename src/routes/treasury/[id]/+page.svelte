@@ -765,7 +765,6 @@
                   id="receipt"
                   type="file"
                   accept="image/jpeg,image/png"
-                  capture="environment"
                   on:change={handleReceiptFileSelect}
                   style="display: none;"
                 />
@@ -938,7 +937,6 @@
                       id="edit-receipt-replace"
                       type="file"
                       accept="image/jpeg,image/png"
-                      capture="environment"
                       on:change={handleEditReceiptFileSelect}
                       style="display: none;"
                     />
@@ -995,7 +993,6 @@
                     id="edit-receipt-new"
                     type="file"
                     accept="image/jpeg,image/png"
-                    capture="environment"
                     on:change={handleEditReceiptFileSelect}
                     style="display: none;"
                   />

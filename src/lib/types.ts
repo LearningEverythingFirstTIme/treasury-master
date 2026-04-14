@@ -21,6 +21,7 @@ export interface Treasury {
   prudentReserve: number;                   // Stored target dollar amount
   prudentReserveMode: 'auto' | 'manual';    // How the target was set
   prudentReserveMonths: number;             // Months multiplier used in auto mode
+  jailCanEnabled: boolean;                  // Whether Jail Can tracking is active
   createdAt: Date;
 }
 

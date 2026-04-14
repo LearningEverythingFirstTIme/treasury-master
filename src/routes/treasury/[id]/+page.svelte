@@ -14,11 +14,13 @@
     addCategory,
     removeCategory,
     updatePrudentReserve,
+    updateJailCanEnabled,
     type Treasury,
     type Transaction
   } from '$lib/treasury';
   import { DEFAULT_CATEGORIES } from '$lib/types';
   import ReserveWidget from '$lib/components/ReserveWidget.svelte';
+  import JailCanWidget from '$lib/components/JailCanWidget.svelte';
   import { calculateAutoReserveTarget } from '$lib/settings';
   import { trigger, hapticsSupported } from '$lib/haptics';
   import { browser } from '$app/environment';
@@ -73,6 +75,12 @@
   let newReserveAmount = '';
   let reserveMode: 'auto' | 'manual' = 'manual';
   let reserveMonths = 3;
+
+  let showEmptyJailCan = false;
+  let emptyAmount = '';
+  let emptyDate = new Date().toISOString().split('T')[0];
+  let emptyNote = '';
+  let jailCanToggleLoading = false;
 
   $: autoReserveCalc = calculateAutoReserveTarget(transactions, reserveMonths);
 
@@ -316,6 +324,53 @@
     haptic('warning');
   }
 
+  async function handleToggleJailCan(enabled: boolean) {
+    if (!treasury || jailCanToggleLoading) return;
+    jailCanToggleLoading = true;
+    try {
+      await updateJailCanEnabled(treasury.id, enabled);
+      await reloadTreasury();
+      haptic('success');
+    } catch (err) {
+      console.error('Error toggling Jail Can:', err);
+    } finally {
+      jailCanToggleLoading = false;
+    }
+  }
+
+  async function handleEmptyJailCan() {
+    if (!$user || !emptyAmount || submitting) return;
+    submitting = true;
+    try {
+      await addTransaction($user.uid, treasuryId, {
+        amount: parseFloat(emptyAmount),
+        type: 'expense',
+        category: 'Jail Can Disbursement',
+        note: emptyNote || 'Jail Can emptied',
+        date: new Date(emptyDate + 'T00:00:00')
+      });
+      emptyAmount = '';
+      emptyDate = new Date().toISOString().split('T')[0];
+      emptyNote = '';
+      showEmptyJailCan = false;
+      haptic('success');
+    } finally {
+      submitting = false;
+    }
+  }
+
+  function openJailCanDonation() {
+    newType = 'income';
+    newCategory = 'Jail Can Donation';
+    newAmount = '';
+    newNote = '';
+    newDate = new Date().toISOString().split('T')[0];
+    newReceiptFile = null;
+    newReceiptPreview = null;
+    showAddTransaction = true;
+    haptic('light');
+  }
+
   async function handleUpdateReserve() {
     if (!treasury) return;
     let amount: number;
@@ -519,6 +574,16 @@
             newReserveAmount = treasury?.prudentReserve ? String(treasury.prudentReserve) : '';
             showEditReserve = true;
           }}
+        />
+      {/if}
+
+      <!-- ── Jail Can Widget ─────────────────────────── -->
+      {#if treasury?.jailCanEnabled}
+        <JailCanWidget
+          {treasury}
+          {transactions}
+          onEmpty={() => { showEmptyJailCan = true; haptic('light'); }}
+          onAddDonation={openJailCanDonation}
         />
       {/if}
 
@@ -1183,6 +1248,29 @@
 
             <!-- Default categories reference -->
             <div style="border-top: 3px solid #0A0A0A; padding-top: 20px;">
+
+              <!-- Jail Can Toggle -->
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 14px; border: 3px solid #0A0A0A; background: {treasury?.jailCanEnabled ? '#FF6B35' : '#F5F5F0'};">
+                <div style="flex: 1; min-width: 0;">
+                  <div style="font-weight: 900; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: {treasury?.jailCanEnabled ? '#fff' : '#0A0A0A'};">🪣 Jail Can</div>
+                  <div style="font-size: 0.7rem; font-weight: 600; margin-top: 2px; color: {treasury?.jailCanEnabled ? 'rgba(255,255,255,0.8)' : '#888'};">Track donations &amp; disbursements</div>
+                </div>
+                <button
+                  on:click={() => { handleToggleJailCan(!treasury?.jailCanEnabled); haptic('light'); }}
+                  disabled={jailCanToggleLoading}
+                  style="width: 56px; height: 32px; border-radius: 16px; border: 3px solid #0A0A0A;
+                         cursor: pointer; position: relative; transition: background 0.2s ease;
+                         background: {treasury?.jailCanEnabled ? '#fff' : '#E5E5E5'};
+                         flex-shrink: 0;"
+                >
+                  <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid #0A0A0A;
+                              background: {treasury?.jailCanEnabled ? '#FF6B35' : '#999'};
+                              position: absolute; top: 3px;
+                              left: {treasury?.jailCanEnabled ? '28px' : '3px'};
+                              transition: left 0.2s ease, background 0.2s ease;"></div>
+                </button>
+              </div>
+
               <p class="nb-label" style="font-size: 0.75rem; margin-bottom: 12px;">Default Categories</p>
 
               <p style="font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em;
@@ -1325,6 +1413,80 @@
                 Save →
               </button>
             </div>
+
+          </div>
+        </div>
+      </div>
+    {/if}
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!--  Empty Jail Can Modal                           -->
+    <!-- ══════════════════════════════════════════════ -->
+    {#if showEmptyJailCan}
+      <div style="position: fixed; inset: 0; background: rgba(10,10,10,0.75); display: flex;
+                  align-items: flex-end; justify-content: center; z-index: 50;">
+        <div
+          class="nb-card"
+          style="width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto;
+                 box-shadow: 0 -6px 0 #0A0A0A; border-bottom: none;"
+        >
+          <!-- Modal header strip -->
+          <div style="background: #FF6B35; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 12px 20px;">
+            <span style="font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.85rem;">🪣 Empty Jail Can</span>
+            <button
+              on:click={() => { showEmptyJailCan = false; haptic('light'); }}
+              style="background: none; border: none; color: #fff; font-size: 1.4rem;
+                     font-weight: 900; cursor: pointer; line-height: 1; min-height: 36px; padding: 0 4px;"
+            >×</button>
+          </div>
+
+          <div style="padding: 24px 20px; display: flex; flex-direction: column; gap: 18px;">
+
+            <!-- Amount -->
+            <div>
+              <label for="empty-amount" class="nb-label">Amount to Disburse *</label>
+              <div style="position: relative;">
+                <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+                              font-weight: 900; font-size: 1.1rem; color: #0A0A0A; pointer-events: none;">$</span>
+                <input
+                  id="empty-amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  bind:value={emptyAmount}
+                  placeholder="0.00"
+                  class="nb-input"
+                  style="padding-left: 34px; font-size: 1.1rem;"
+                />
+              </div>
+            </div>
+
+            <!-- Date -->
+            <div>
+              <label for="empty-date" class="nb-label">Date</label>
+              <input id="empty-date" type="date" bind:value={emptyDate} class="nb-input" />
+            </div>
+
+            <!-- Note -->
+            <div>
+              <label for="empty-note" class="nb-label">Note (optional)</label>
+              <input
+                id="empty-note"
+                type="text"
+                bind:value={emptyNote}
+                placeholder="Where did the money go?"
+                class="nb-input"
+              />
+            </div>
+
+            <button
+              on:click={() => { handleEmptyJailCan(); }}
+              disabled={!emptyAmount || submitting}
+              class="nb-btn"
+              style="background: #FF6B35; color: #fff; font-size: 1rem; {submitting ? 'opacity: 0.6;' : ''}"
+            >
+              {submitting ? 'Saving...' : 'Record Disbursement ✓'}
+            </button>
 
           </div>
         </div>

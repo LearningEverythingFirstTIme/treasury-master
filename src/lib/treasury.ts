@@ -33,6 +33,7 @@ export async function getUserTreasuries(userId: string): Promise<Treasury[]> {
       prudentReserve: data.prudentReserve ?? 0,
       prudentReserveMode: data.prudentReserveMode ?? 'manual',
       prudentReserveMonths: data.prudentReserveMonths ?? 3,
+      jailCanEnabled: data.jailCanEnabled ?? false,
       createdAt: data.createdAt?.toDate() || new Date()
     } as Treasury;
   });
@@ -267,6 +268,36 @@ export function calculateBalance(transactions: Transaction[]): number {
   return transactions.reduce((acc, t) => {
     return t.type === 'income' ? acc + t.amount : acc - t.amount;
   }, 0);
+}
+
+export function calculateJailCanBalance(transactions: Transaction[]): number {
+  return transactions.reduce((acc, t) => {
+    if (t.category === 'Jail Can Donation' && t.type === 'income') return acc + t.amount;
+    if (t.category === 'Jail Can Disbursement' && t.type === 'expense') return acc - t.amount;
+    return acc;
+  }, 0);
+}
+
+export function calculateJailCanLastEmptied(transactions: Transaction[]): Date | null {
+  const disbursements = transactions
+    .filter(t => t.category === 'Jail Can Disbursement' && t.type === 'expense')
+    .sort((a, b) => b.date.getTime() - a.date.getTime());
+  return disbursements.length > 0 ? disbursements[0].date : null;
+}
+
+export async function updateJailCanEnabled(treasuryId: string, enabled: boolean): Promise<void> {
+  const ref = doc(db, 'treasuries', treasuryId);
+  await updateDoc(ref, {
+    jailCanEnabled: enabled
+  });
+
+  if (enabled) {
+    await addCategory(treasuryId, 'Jail Can Donation');
+    await addCategory(treasuryId, 'Jail Can Disbursement');
+  } else {
+    await removeCategory(treasuryId, 'Jail Can Donation');
+    await removeCategory(treasuryId, 'Jail Can Disbursement');
+  }
 }
 
 export function getCategoryBreakdown(transactions: Transaction[]): Record<string, { amount: number; count: number; type: 'income' | 'expense' }> {
